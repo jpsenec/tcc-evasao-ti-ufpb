@@ -34,15 +34,17 @@ import numpy as np
 warnings.filterwarnings("ignore")
 
 # ==============================================================================
-# CONSTANTES
+# CONSTANTES (DINÂMICAS E PORTÁVEIS)
 # ==============================================================================
-PASTA_PROJETO   = r"C:\\Users\\Senec\\Desktop\\Estudos\\Projeto TCC"
-PASTA_DADOS     = os.path.join(PASTA_PROJETO, "dados")
-ARQ_REGIAO_XLSX = os.path.join(PASTA_DADOS, "regiao", "INDIC_REGIAO_2010_2024.xlsx")
-ARQ_UF_XLSX     = os.path.join(PASTA_DADOS, "uf",     "INDIC_UF_2010_2024.xlsx")
-ARQ_TRAJ        = os.path.join(PASTA_DADOS, "INDICADORES_TRAJETORIA.csv")
-MD5_REGIAO      = os.path.join(PASTA_DADOS, "regiao", "md5_INDIC_REGIAO_2010_2024.txt")
-MD5_UF          = os.path.join(PASTA_DADOS, "uf",     "md5_INDIC_UF_2010_2024.txt")
+DIRETORIO_SCRIPT = os.path.dirname(os.path.abspath(__file__))
+PASTA_PROJETO    = os.path.dirname(DIRETORIO_SCRIPT)
+PASTA_DADOS      = os.path.join(PASTA_PROJETO, "dados", "brutos")
+PASTA_RELATORIOS = os.path.join(PASTA_PROJETO, "relatorios")
+ARQ_REGIAO_XLSX  = os.path.join(PASTA_DADOS, "regiao", "INDIC_REGIAO_2010_2024.xlsx")
+ARQ_UF_XLSX      = os.path.join(PASTA_DADOS, "uf",     "INDIC_UF_2010_2024.xlsx")
+ARQ_TRAJ         = os.path.join(PASTA_DADOS, "INDICADORES_TRAJETORIA.csv")
+MD5_REGIAO       = os.path.join(PASTA_DADOS, "regiao", "md5_INDIC_REGIAO_2010_2024.txt")
+MD5_UF           = os.path.join(PASTA_DADOS, "uf",     "md5_INDIC_UF_2010_2024.txt")
 
 CO_MUNICIPIO_RIO_TINTO = 2512903
 CO_UF_PB               = 25
@@ -613,7 +615,8 @@ def main():
     bloco9(df_reg, df_uf, df_traj)
     bloco10()
     falhas, _ = audit.summary()
-    audit.save(os.path.join(PASTA_PROJETO, "audit_report.csv"))
+    os.makedirs(PASTA_RELATORIOS, exist_ok=True)
+    audit.save(os.path.join(PASTA_RELATORIOS, "audit_report.csv"))
     sys.exit(0 if falhas==0 else 1)
 
 if __name__ == "__main__":

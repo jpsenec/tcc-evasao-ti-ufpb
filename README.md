@@ -1,103 +1,124 @@
 # 📉 Análise de Evasão em Cursos de TI (UFPB - Campus IV Rio Tinto)
 
-Este repositório contém a infraestrutura de dados, scripts de processamento, pipelines de auditoria de qualidade e um painel interativo (dashboard) voltado para a análise de evasão e trajetórias acadêmicas no ensino superior, com foco especial nos cursos de Tecnologia da Informação (TI) da Paraíba e do Campus IV da UFPB (Rio Tinto).
+Este repositório contém a infraestrutura completa de dados, scripts de processamento (ETL), pipelines de auditoria de qualidade e dashboards interativos voltados para a análise de evasão e trajetórias acadêmicas no ensino superior, com foco especial nos cursos de Tecnologia da Informação (TI) da Paraíba e do Campus IV da UFPB (Rio Tinto), no período de 2020 a 2024.
+
+---
+
+## 💻 Os Dashboards do Projeto
+
+O projeto disponibiliza duas interfaces visuais complementares para exploração dos dados:
+
+### 1. Dashboard Web Interativo (`index.html` / `dashboard_interativo.html`)
+Painel web moderno, responsivo e autocontido (HTML5, CSS3, JavaScript e Plotly.js). Não necessita de Python ou servidor instalado para funcionar — basta abrir o arquivo no navegador ou acessar via **GitHub Pages**.
+
+*   🌐 **Aba 1: Cenário Nacional** — Série temporal por macrorregiões (2020–2024), ranking consolidado de encerramento do ciclo e linha de referência nacional oficial do Brasil.
+*   🌵 **Aba 2: Paraíba vs. Nordeste** — Comparativo temporal da trajetória da Paraíba em relação aos outros 8 estados nordestinos.
+*   👥 **Aba 3: Análise de Gênero** — Comparação das taxas de evasão entre o público feminino e masculino nos estados e regiões, revelando maior retenção discente feminina.
+*   🎨 **Aba 4: Recorte Étnico-Racial (PPI)** — Comparativo de evasão entre estudantes Pretos, Pardos e Indígenas (PPI) e Não-PPI nos estados do Nordeste, demonstrando o impacto positivo das políticas de assistência e permanência estudantil.
+*   🎓 **Aba 5: UFPB Campus Rio Tinto** — Análise longitudinal da Coorte de 2020 para os cursos do campus (Licenciatura em Ciência da Computação e Bacharelado em Sistemas de Informação), com:
+    *   **Funil de Retenção:** Acompanhamento anual dos alunos ativos (permanência) a partir dos 93 ingressantes de Computação e 47 de Sistemas de Informação.
+    *   **TDA Acumulada vs. TADA Anual:** Evidenciando o pico de desligamentos em 2022 com o retorno às aulas presenciais pós-pandemia.
+    *   **Distribuição de Desfecho (2024):** Gráficos de rosca ilustrando concluídos, retidos e evadidos no 5º ano de integralização.
+*   📋 **Aba 6: Tabela de Dados** — Consulta tabular interativa com busca textual instantânea, filtros por região e ano, e ordenação por colunas.
+
+### 2. Dashboard Streamlit (`dashboard.py`)
+Aplicação analítica em Python com barra lateral de filtros dinâmicos, métricas em tempo real e visualizações interativas com Plotly, ideal para exploração em profundidade e execução em nuvem (Streamlit Community Cloud).
 
 ---
 
 ## 🛠️ Tecnologias Utilizadas
 
-A pilha tecnológica foi estruturada para garantir eficiência, reprodutibilidade e visualização moderna de dados:
-
 *   **Linguagem Principal:** Python 3.10+
-*   **Manipulação e Limpeza de Dados:** [Pandas](https://pandas.pydata.org/) & [Numpy](https://numpy.org/) (processamento eficiente de microdados e dados consolidados)
-*   **Visualização Interativa:** [Plotly](https://plotly.com/python/) (criação de gráficos interativos HTML ricos em dados) e [Streamlit](https://streamlit.io/) (construção do painel web ágil e esteticamente premium)
-*   **Leitura de Planilhas:** `openpyxl` (integração direta com relatórios originais em formato Excel do INEP)
-*   **Auditoria e Qualidade:** Pipeline automatizado de testes de consistência estatística e lógica de dados.
+*   **Manipulação e Limpeza de Dados:** [Pandas](https://pandas.pydata.org/) & [Numpy](https://numpy.org/)
+*   **Visualização Interativa:** [Plotly](https://plotly.com/python/) (gráficos HTML) e [Streamlit](https://streamlit.io/) (aplicação web)
+*   **Leitura de Relatórios:** `openpyxl` (processamento direto de planilhas do INEP)
+*   **Auditoria e Qualidade:** Pipeline automatizado com validação de checksums MD5, consistência matemática ($TAP + TCA + TDA \le 100\%$) e testes de regras censitárias.
 
 ---
 
 ## 📊 Metodologia e Indicadores Utilizados
 
-Uma das contribuições metodológicas cruciais deste projeto é a diferenciação e correta interpretação de dois indicadores distintos disponibilizados pelo INEP:
+O estudo fundamenta-se na diferenciação conceitual de dois indicadores oficiais do INEP/MEC:
 
 ### 1. Taxa de Evasão Anual (Indicador Transversal)
-*   **O que é:** Uma métrica instantânea calculada anualmente que estima o fluxo de evasão geral em um determinado ano letivo.
-*   **Como funciona:** Compara a quantidade de alunos que se desligaram do sistema em relação ao total de matriculados naquele ano específico. Mistura alunos que estão no início, meio e fim do curso.
-*   **Uso no projeto:** Utilizado para fornecer o panorama macrogeográfico (Nível Regiões e Estados/UF), demonstrando a evolução temporal de fluxo anual.
+*   **O que é:** Métrica instantânea calculada anualmente que estima a evasão global do sistema em um determinado ano letivo.
+*   **Uso:** Fornece o panorama macrogeográfico (Nacional, Macrorregiões e Estados/UFs), com recortes adicionais por gênero e raça/cor.
 
-### 2. Taxa de Desistência Acumulada - TDA (Indicador Longitudinal / Coorte)
-*   **O que é:** Um indicador que acompanha um grupo específico de estudantes que ingressaram no mesmo ano (**Coorte de 2020**) ao longo do tempo (referência de 2020 a 2024).
-*   **Como funciona:** Acumula as desistências reais de forma sequencial. Após 5 anos de acompanhamento (em 2024), mede de forma exata a porcentagem de alunos daquela turma que desistiram do curso.
-*   **Uso no projeto:** Utilizado na análise microgeográfica e de trajetórias de cursos individuais (Brasil, Paraíba e Campus Rio Tinto da UFPB), permitindo identificar o comportamento específico em TI e STEM.
-*   **Particularidade do Censo:** O curso de *Licenciatura em Ciência da Computação* de Rio Tinto é classificado na CINE-MEC como área geral de **Educação (01)** (formação de professores), enquanto *Sistemas de Informação* é classificado em **Computação/TIC (06)**. O projeto trata essa distinção de forma que ambos os cursos sejam analisados adequadamente em Rio Tinto.
+### 2. Taxa de Desistência Acumulada - TDA (Indicador Longitudinal por Coorte)
+*   **O que é:** Acompanhamento longitudinal da mesma turma de ingressantes (**Coorte de 2020**) ao longo de 5 anos (2020 a 2024).
+*   **Uso:** Análise microinstitucional dos cursos de TI no Campus IV da UFPB (Rio Tinto) e contrastes setoriais com o estado e o país.
+*   **Nota sobre Classificação CINE-MEC:** O curso de *Licenciatura em Ciência da Computação* é classificado na área de **Educação (01)** (formação docente), enquanto *Sistemas de Informação* pertence a **Computação e TIC (06)**. O projeto trata essa distinção para que ambos sejam avaliados no escopo de TI do campus.
 
 ---
 
-## 📉 Explicação dos Gráficos Gerados
+## 🗂️ Estrutura Organizada do Repositório
 
-Os gráficos foram desenhados sob uma identidade visual moderna (modo escuro, paleta HSL harmoniosa e micro-interações via cursor).
-
-### Gráfico 1: Série Temporal de Evasão por Região (2020–2024)
-*   **Tipo:** Linhas com Marcadores (`go.Scatter`).
-*   **Finalidade:** Demonstrar o comportamento anual da evasão em todo o país. Destaca a trajetória da Região Nordeste, que se mantém acima da média nacional no período recente.
-
-### Gráfico 2: Ranking de Regiões (2023–2024)
-*   **Tipo:** Barras Horizontais (`go.Bar`).
-*   **Finalidade:** Ordenar de forma clara quais regiões do país sofreram maior índice de evasão transversal no último ano de análise, incluindo uma linha média de referência.
-
-### Gráfico 3: Série Temporal - Paraíba vs Estados do Nordeste (2020–2024)
-*   **Tipo:** Linhas com Destaque de Cor (`go.Scatter`).
-*   **Finalidade:** Posicionar o comportamento da Paraíba em relação aos seus vizinhos regionais. Destaca que, apesar de flutuações, a Paraíba encerrou 2024 com uma taxa de evasão de **13.0%**, abaixo da média nordestina de **16.0%**.
-
-### Gráfico 4: Drilldown de Evasão Acumulada (Brasil → Paraíba → Rio Tinto)
-*   **Tipo:** Linhas de Coorte com Preenchimento de Área (`go.Scatter` com `fill="tozeroy"`).
-*   **Finalidade:** Demonstrar visualmente a hierarquia geográfica da TDA acumulada para a coorte de 2020. Exibe a acumulação de desistências ano a ano de referência, revelando que a curva acumulada local de Rio Tinto se alinha à tendência nacional/estadual de alta evasão em exatas/TI ao longo do ciclo de graduação.
-
-### Gráfico 5: Trajetória dos Cursos de Rio Tinto (Coorte 2020)
-*   **Tipo:** Gráfico Multi-painel/Subplots de Barras e Linhas Pontilhadas (`make_subplots`, `go.Bar` e `go.Scatter`).
-*   **Finalidade:** Contrastar a **TDA** (Taxa de Desistência Acumulada) com a **TADA** (Taxa de Desistência Anualizada da Coorte) para os dois principais cursos de TI do Campus IV (Licenciatura em Ciência da Computação e Sistemas de Informação), evidenciando a evolução temporal de perdas de cada turma.
-
-### Gráfico 6: Distribuição da TDA por Grau Acadêmico na Paraíba (TI, 2024)
-*   **Tipo:** Gráficos de Violino e Boxplot integrados (`go.Violin`).
-*   **Finalidade:** Exibir a distribuição estatística (médias, quartis, densidade e outliers) das TDAs acumuladas em 2024 para cursos de TI no estado da Paraíba, segmentando entre Bacharelados e Licenciaturas, sinalizando o posicionamento individual dos cursos de Rio Tinto no cenário estadual.
-
----
-
-## 🗂️ Estrutura do Repositório
-
-*   [dashboard_interativo.html](file:///C:/Users/Senec/Desktop/Estudos/Projeto%20TCC/dashboard_interativo.html): Dashboard interativo autocontido (HTML/CSS/JS/Plotly) com filtros por abas, gráficos de gênero, recorte PPI, funil de coortes e rankings, pronto para visualização direta no navegador.
-*   [dashboard.py](file:///C:/Users/Senec/Desktop/Estudos/Projeto%20TCC/dashboard.py): Aplicação interativa completa construída com Streamlit e Plotly.
-*   [analise_tcc.py](file:///C:/Users/Senec/Desktop/Estudos/Projeto%20TCC/analise_tcc.py): Pipeline de ETL, limpeza de dados, fusão de bases do INEP e exportação automatizada de gráficos HTML e tabelas processadas.
-*   [audit_pipeline.py](file:///C:/Users/Senec/Desktop/Estudos/Projeto%20TCC/audit_pipeline.py): Pipeline de testes que executa validação de checksums MD5, consistência matemática entre as taxas (ex: $TAP + TCA + TDA \le 100\%$) e integridade lógica dos filtros.
-*   [requirements.txt](file:///C:/Users/Senec/Desktop/Estudos/Projeto%20TCC/requirements.txt): Relação de dependências do Python necessárias para a execução do projeto.
-*   `.gitignore`: Filtro de exclusão para arquivos pesados (>100 MB) e temporários.
-*   `dados/`: Diretório contendo as bases consolidadas de indicadores de região, UF e trajetória de cursos obtidas junto ao INEP.
-*   `dados_processados/`: Tabelas tratadas e filtradas com os recortes geográficos e locais analisados.
-*   `graficos_evasao/`: Gráficos interativos exportados em HTML prontos para consulta ou captura para o artigo.
+```text
+tcc-evasao-ti-ufpb/
+│
+├── index.html                      # Dashboard Web Interativo (pronto para GitHub Pages)
+├── dashboard_interativo.html       # Cópia standalone do Dashboard Web
+├── dashboard.py                    # Aplicação Web Streamlit
+├── requirements.txt                # Dependências Python do ecossistema
+├── README.md                       # Documentação técnica do repositório
+├── .gitignore                      # Regras de exclusão de arquivos (>100MB e temporários)
+│
+├── scripts/                        # Pipelines de código Python
+│   ├── analise_tcc.py              # Pipeline de ETL, tratamento e geração de gráficos
+│   └── audit_pipeline.py           # Pipeline de auditoria e testes de qualidade de dados
+│
+├── dados/                          # Bases de dados organizadas por estágio
+│   ├── brutos/                     # Dados originais do INEP (Trajetória, Regiões, UFs)
+│   │   ├── INDICADORES_TRAJETORIA.csv
+│   │   ├── regiao/
+│   │   └── uf/
+│   └── processados/                # Datasets limpos e agregados prontos para análise
+│       ├── evasao_regiao_2020_2024.csv
+│       ├── evasao_uf_2020_2024.csv
+│       ├── trajetoria_riotinto_2020_2024.csv
+│       └── trajetoria_ti_pb_2020_2024.csv
+│
+├── graficos/                       # Gráficos interativos em HTML para o artigo
+│   ├── grafico1_serie_temporal_regioes.html
+│   ├── grafico2_ranking_regioes_2024.html
+│   ├── grafico3_paraiba_vs_nordeste.html
+│   ├── grafico4_drilldown_brasil_pb_riotinto.html
+│   ├── grafico5_trajetoria_cursos_riotinto.html
+│   ├── grafico6_licenciatura_vs_bacharelado_pb.html
+│   ├── grafico_extra_genero_nordeste_2024.html
+│   └── grafico_extra_ppi_nordeste_2024.html
+│
+└── relatorios/                     # Relatórios de conformidade e qualidade
+    └── audit_report.csv            # Diagnóstico da execução do pipeline de auditoria
+```
 
 ---
 
 ## 🚀 Como Executar o Projeto
 
-1.  **Instalar Dependências:**
-    ```bash
-    pip install -r requirements.txt
-    ```
+### 1. Clonar o Repositório e Instalar Dependências
+```bash
+git clone https://github.com/jpsenec/tcc-evasao-ti-ufpb.git
+cd tcc-evasao-ti-ufpb
+pip install -r requirements.txt
+```
 
-2.  **Executar a Auditoria de Qualidade dos Dados:**
-    ```bash
-    python audit_pipeline.py
-    ```
+### 2. Executar a Auditoria de Qualidade dos Dados
+Valida a integridade matemática das taxas, integridade referencial dos municípios e consistência dos microdados:
+```bash
+python scripts/audit_pipeline.py
+```
+*(O resultado será salvo automaticamente em `relatorios/audit_report.csv`).*
 
-3.  **Processar e Gerar os Gráficos:**
-    ```bash
-    python analise_tcc.py
-    ```
+### 3. Executar o Pipeline de Análise e Gerar Gráficos
+Executa a limpeza, as agregações e exporta os 8 gráficos interativos em formato HTML:
+```bash
+python scripts/analise_tcc.py
+```
 
-4.  **Visualizar os Dashboards:**
-    *   **Opção A — Dashboard Web Standalone (Navegador):**  
-        Basta abrir o arquivo `dashboard_interativo.html` diretamente em qualquer navegador (Google Chrome, Edge, Firefox). Não requer Python em execução.
-    *   **Opção B — Dashboard Streamlit:**  
-        ```bash
-        streamlit run dashboard.py
-        ```
+### 4. Abrir os Dashboards
+*   **Dashboard Web Standalone:** Dê dois cliques em `index.html` (ou abra no navegador). Funciona instantaneamente sem necessidade de rodar nenhum comando de terminal.
+*   **Dashboard Streamlit:**
+    ```bash
+    streamlit run dashboard.py
+    ```

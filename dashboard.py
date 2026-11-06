@@ -81,10 +81,10 @@ h3 { color: #cbd5e1 !important; }
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# CAMINHOS DAS FONTES
+# CAMINHOS DAS FONTES (DINÂMICOS E PORTÁVEIS)
 # ==============================================================================
-PASTA_PROJETO = r"C:\Users\Senec\Desktop\Estudos\Projeto TCC"
-PASTA_DADOS_LOCAL = os.path.join(PASTA_PROJETO, "dados")
+PASTA_PROJETO = os.path.dirname(os.path.abspath(__file__))
+PASTA_DADOS_LOCAL = os.path.join(PASTA_PROJETO, "dados", "brutos")
 
 ARQ_REGIAO_XLSX = os.path.join(PASTA_DADOS_LOCAL, "regiao", "INDIC_REGIAO_2010_2024.xlsx")
 ARQ_UF_XLSX = os.path.join(PASTA_DADOS_LOCAL, "uf", "INDIC_UF_2010_2024.xlsx")

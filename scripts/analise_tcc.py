@@ -27,12 +27,13 @@ from plotly.subplots import make_subplots
 import os
 
 # ==============================================================================
-# CONSTANTES E CAMINHOS
+# CONSTANTES E CAMINHOS (DINÂMICOS E PORTÁVEIS)
 # ==============================================================================
-PASTA_PROJETO = r"C:\Users\Senec\Desktop\Estudos\Projeto TCC"
-PASTA_DADOS_LOCAL = os.path.join(PASTA_PROJETO, "dados")
-PASTA_SAIDA = os.path.join(PASTA_PROJETO, "graficos_evasao")
-PASTA_CSV_SAIDA = os.path.join(PASTA_PROJETO, "dados_processados")
+DIRETORIO_SCRIPT = os.path.dirname(os.path.abspath(__file__))
+PASTA_PROJETO = os.path.dirname(DIRETORIO_SCRIPT)
+PASTA_DADOS_LOCAL = os.path.join(PASTA_PROJETO, "dados", "brutos")
+PASTA_SAIDA = os.path.join(PASTA_PROJETO, "graficos")
+PASTA_CSV_SAIDA = os.path.join(PASTA_PROJETO, "dados", "processados")
 
 ARQ_REGIAO_XLSX = os.path.join(PASTA_DADOS_LOCAL, "regiao", "INDIC_REGIAO_2010_2024.xlsx")
 ARQ_UF_XLSX = os.path.join(PASTA_DADOS_LOCAL, "uf", "INDIC_UF_2010_2024.xlsx")
