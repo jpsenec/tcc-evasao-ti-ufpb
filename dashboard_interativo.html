@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — Evasão em TI · Paraíba 2020–2024</title>
+  <meta name="description" content="Dashboard interativo de análise de evasão em cursos de Tecnologia da Informação na Paraíba entre 2020 e 2024 — TCC UFPB Rio Tinto" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+
+  <style>
+    :root {
+      --bg-primary:    #0a0f1e;
+      --bg-surface:    #111827;
+      --bg-card:       #1a2235;
+      --bg-card-hover: #1e2a42;
+      --border:        #1f2f4a;
+      --accent-blue:   #3b82f6;
+      --accent-amber:  #f59e0b;
+      --accent-red:    #ef4444;
+      --accent-green:  #10b981;
+      --accent-purple: #8b5cf6;
+      --accent-cyan:   #06b6d4;
+      --text-primary:  #f1f5f9;
+      --text-secondary:#94a3b8;
+      --text-muted:    #475569;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: linear-gradient(135deg, #0d1b3e 0%, #0a0f1e 60%, #1a0a2e 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 2rem 2.5rem 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -60%; left: -10%;
+      width: 50%; height: 250%;
+      background: radial-gradient(ellipse, rgba(59,130,246,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .header::after {
+      content: '';
+      position: absolute;
+      top: -40%; right: 5%;
+      width: 35%; height: 200%;
+      background: radial-gradient(ellipse, rgba(245,158,11,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .header-inner {
+      max-width: 1400px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 1rem; flex-wrap: wrap; position: relative; z-index: 1;
+    }
+    .header-left { display: flex; align-items: center; gap: 1.2rem; }
+    .header-icon {
+      width: 52px; height: 52px;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      border-radius: 14px; display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; box-shadow: 0 0 20px rgba(59,130,246,0.4);
+    }
+    .header-title h1 {
+      font-size: 1.45rem; font-weight: 800;
+      background: linear-gradient(90deg, #f1f5f9, #94a3b8);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; line-height: 1.2;
+    }
+    .header-title p { font-size: 0.78rem; color: var(--text-secondary); margin-top: 2px; }
+    .header-badges { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .badge {
+      font-size: 0.7rem; font-weight: 600;
+      padding: 0.25rem 0.65rem; border-radius: 20px;
+    }
+    .badge-blue   { background: rgba(59,130,246,0.18); color: #93c5fd; border: 1px solid rgba(59,130,246,0.3); }
+    .badge-amber  { background: rgba(245,158,11,0.18); color: #fcd34d; border: 1px solid rgba(245,158,11,0.3); }
+    .badge-green  { background: rgba(16,185,129,0.18); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.3); }
+
+    /* ── NAV ── */
+    .nav-container {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-inner {
+      max-width: 1400px; margin: 0 auto;
+      display: flex; padding: 0 2.5rem;
+      overflow-x: auto; scrollbar-width: none;
+    }
+    .nav-inner::-webkit-scrollbar { display: none; }
+    .nav-tab {
+      padding: 1rem 1.4rem; font-size: 0.82rem; font-weight: 500;
+      color: var(--text-secondary); cursor: pointer;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap; transition: all 0.2s ease;
+      display: flex; align-items: center; gap: 0.45rem; user-select: none;
+    }
+    .nav-tab:hover { color: var(--text-primary); }
+    .nav-tab.active { color: var(--accent-blue); border-bottom-color: var(--accent-blue); }
+
+    /* ── MAIN ── */
+    .main { max-width: 1400px; margin: 0 auto; padding: 2rem 2.5rem 3rem; }
+    .page { display: none; }
+    .page.active { display: block; animation: fadeIn 0.35s ease; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── KPI CARDS ── */
+    .kpi-grid { display: grid; gap: 1rem; margin-bottom: 2rem; }
+    .kpi-grid-5 { grid-template-columns: repeat(5,1fr); }
+    .kpi-grid-4 { grid-template-columns: repeat(4,1fr); }
+    .kpi-grid-3 { grid-template-columns: repeat(3,1fr); }
+    .kpi-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.2rem 1.4rem;
+      transition: all 0.25s ease; position: relative; overflow: hidden;
+    }
+    .kpi-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: var(--kpi-color, var(--accent-blue));
+    }
+    .kpi-card:hover {
+      background: var(--bg-card-hover); border-color: rgba(59,130,246,0.3);
+      transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+    .kpi-label { font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 0.5rem; }
+    .kpi-value { font-size: 2rem; font-weight: 800; color: var(--text-primary); line-height: 1; }
+    .kpi-delta { font-size: 0.73rem; margin-top: 0.3rem; font-weight: 500; }
+    .kpi-delta.up     { color: var(--accent-red); }
+    .kpi-delta.down   { color: var(--accent-green); }
+    .kpi-delta.neutral{ color: var(--text-secondary); }
+
+    /* ── CHART CARDS ── */
+    .chart-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem;
+    }
+    .chart-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      margin-bottom: 1rem; gap: 1rem;
+    }
+    .chart-title   { font-size: 1rem; font-weight: 700; color: var(--text-primary); }
+    .chart-subtitle{ font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.2rem; }
+    .chart-grid-2  { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+
+    /* ── INSIGHT ── */
+    .insight {
+      border-radius: 10px; padding: 0.9rem 1.1rem; margin: 1rem 0;
+      font-size: 0.83rem; line-height: 1.6;
+      display: flex; gap: 0.6rem; align-items: flex-start;
+    }
+    .insight-icon { font-size: 1rem; flex-shrink: 0; margin-top: 0.1rem; }
+    .insight-blue  { background: rgba(59,130,246,0.08);  border-left: 3px solid var(--accent-blue);   color: #93c5fd; }
+    .insight-amber { background: rgba(245,158,11,0.08);  border-left: 3px solid var(--accent-amber);  color: #fcd34d; }
+    .insight-red   { background: rgba(239,68,68,0.08);   border-left: 3px solid var(--accent-red);    color: #fca5a5; }
+    .insight-green { background: rgba(16,185,129,0.08);  border-left: 3px solid var(--accent-green);  color: #6ee7b7; }
+
+    /* ── SECTION TITLE ── */
+    .section-title {
+      font-size: 1.25rem; font-weight: 700; color: var(--text-primary);
+      margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.5rem;
+    }
+    .section-title::after {
+      content: ''; flex: 1; height: 1px; background: var(--border); margin-left: 0.5rem;
+    }
+
+    /* ── CONTROLS ── */
+    .controls-bar { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; align-items: center; }
+    .ctrl-group   { display: flex; align-items: center; gap: 0.5rem; }
+    .ctrl-label   { font-size: 0.75rem; color: var(--text-secondary); font-weight: 500; }
+    .ctrl-select  {
+      background: var(--bg-card); border: 1px solid var(--border);
+      color: var(--text-primary); border-radius: 8px;
+      padding: 0.45rem 0.75rem; font-size: 0.8rem;
+      font-family: 'Inter', sans-serif; cursor: pointer; outline: none;
+      transition: border-color 0.2s;
+    }
+    .ctrl-select:hover, .ctrl-select:focus { border-color: var(--accent-blue); }
+
+    /* ── TABLE ── */
+    .table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    thead tr { background: rgba(59,130,246,0.08); }
+    thead th {
+      padding: 0.75rem 1rem; text-align: left; font-weight: 600;
+      color: var(--text-secondary); font-size: 0.72rem; text-transform: uppercase;
+      letter-spacing: 0.6px; border-bottom: 1px solid var(--border);
+      cursor: pointer; user-select: none; white-space: nowrap;
+    }
+    thead th:hover { color: var(--accent-blue); }
+    tbody tr { border-bottom: 1px solid rgba(31,47,74,0.5); transition: background 0.15s; }
+    tbody tr:hover { background: rgba(59,130,246,0.04); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody td { padding: 0.65rem 1rem; color: var(--text-primary); }
+    .td-highlight { font-weight: 700; color: var(--accent-amber); }
+    .td-tag { font-size: 0.68rem; padding: 0.15rem 0.5rem; border-radius: 20px; font-weight: 600; }
+    .tag-high { background: rgba(239,68,68,0.15);  color: #fca5a5; }
+    .tag-med  { background: rgba(245,158,11,0.15); color: #fcd34d; }
+    .tag-low  { background: rgba(16,185,129,0.15); color: #6ee7b7; }
+
+    /* ── YEAR TABS ── */
+    .year-tabs { display: flex; gap: 0.4rem; }
+    .year-tab {
+      padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.72rem;
+      font-weight: 600; cursor: pointer; background: var(--bg-surface);
+      border: 1px solid var(--border); color: var(--text-secondary); transition: all 0.2s;
+    }
+    .year-tab.active, .year-tab:hover {
+      background: var(--accent-blue); border-color: var(--accent-blue); color: white;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--bg-surface); border-top: 1px solid var(--border);
+      padding: 1.5rem 2.5rem; text-align: center;
+      font-size: 0.72rem; color: var(--text-muted);
+    }
+    footer a { color: var(--text-secondary); text-decoration: none; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .kpi-grid-5 { grid-template-columns: repeat(3,1fr); }
+      .kpi-grid-4 { grid-template-columns: repeat(2,1fr); }
+      .chart-grid-2 { grid-template-columns: 1fr; }
+      .main { padding: 1.5rem 1rem 3rem; }
+      .header { padding: 1.5rem 1rem 1rem; }
+      .nav-inner { padding: 0 1rem; }
+    }
+    @media (max-width: 600px) {
+      .kpi-grid-5, .kpi-grid-4, .kpi-grid-3 { grid-template-columns: repeat(2,1fr); }
+      .kpi-value { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-inner">
+    <div class="header-left">
+      <div class="header-icon">📉</div>
+      <div class="header-title">
+        <h1>Evasão em Cursos de TI — Paraíba</h1>
+        <p>Dashboard Interativo · Coorte 2020 · Período 2020–2024 · TCC UFPB Rio Tinto</p>
+      </div>
+    </div>
+    <div class="header-badges">
+      <span class="badge badge-blue">📊 INEP/MEC</span>
+      <span class="badge badge-amber">📍 Paraíba</span>
+      <span class="badge badge-green">🎓 UFPB Rio Tinto</span>
+    </div>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav class="nav-container">
+  <div class="nav-inner">
+    <div class="nav-tab active" onclick="showPage('nacional')"  id="tab-nacional">🌎 Panorama Nacional</div>
+    <div class="nav-tab"        onclick="showPage('paraiba')"   id="tab-paraiba">📍 Paraíba no Nordeste</div>
+    <div class="nav-tab"        onclick="showPage('genero')"    id="tab-genero">👥 Análise de Gênero</div>
+    <div class="nav-tab"        onclick="showPage('ppi')"       id="tab-ppi">🎨 Recorte PPI</div>
+    <div class="nav-tab"        onclick="showPage('riotinto')"  id="tab-riotinto">🎓 UFPB Rio Tinto</div>
+    <div class="nav-tab"        onclick="showPage('tabela')"    id="tab-tabela">📋 Tabela Interativa</div>
+  </div>
+</nav>
+
+<main class="main">
+
+  <!-- PAGE 1: NACIONAL -->
+  <section class="page active" id="page-nacional">
+    <h2 class="section-title">🌎 Panorama Nacional — Evasão por Região (2020–2024)</h2>
+    <div class="kpi-grid kpi-grid-5">
+      <div class="kpi-card" style="--kpi-color:#06b6d4">
+        <div class="kpi-label">Norte</div><div class="kpi-value">18,4%</div>
+        <div class="kpi-delta up">▲ +3,4pp vs 2020</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color:#f59e0b">
+        <div class="kpi-label">Nordeste</div><div class="kpi-value">16,0%</div>
+        <div class="kpi-delta up">▲ +2,5pp vs 2020</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color:#8b5cf6">
+        <div class="kpi-label">Centro-Oeste</div><div class="kpi-value">18,7%</div>
+        <div class="kpi-delta up">▲ +4,9pp vs 2020</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color:#3b82f6">
+        <div class="kpi-label">Sudeste</div><div class="kpi-value">17,7%</div>
+        <div class="kpi-delta up">▲ +4,1pp vs 2020</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color:#10b981">
+        <div class="kpi-label">Sul</div><div class="kpi-value">17,8%</div>
+        <div class="kpi-delta up">▲ +5,3pp vs 2020</div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">📈 Evolução da Taxa de Evasão por Região</div>
+          <div class="chart-subtitle">Fluxo anual 2020–2024 · Destaque: Nordeste</div>
+        </div>
+      </div>
+      <div id="chart-serie-regional" style="height:420px;"></div>
+    </div>
+    <div class="insight insight-amber">
+      <span class="insight-icon">💡</span>
+      <span><b>O Nordeste</b> teve o <b>menor crescimento proporcional</b> entre as regiões (+2,5pp). Em 2023-2024, ficou <b>abaixo de todas as outras regiões</b>, evidenciando melhoria relativa no desempenho de retenção.</span>
+    </div>
+    <div class="chart-grid-2">
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">🏆 Ranking de Regiões — 2023-2024</div>
+            <div class="chart-subtitle">Comparativo com a média nacional</div>
+          </div>
+        </div>
+        <div id="chart-ranking-regiao" style="height:320px;"></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">🗺️ Mapa Coroplético — Evasão por Estado</div>
+            <div class="chart-subtitle">Selecione o período</div>
+          </div>
+          <div class="ctrl-group">
+            <label class="ctrl-label" for="map-year-select">Período:</label>
+            <select class="ctrl-select" id="map-year-select" onchange="updateMap()">
+              <option value="2020-2021">2020-2021</option>
+              <option value="2021-2022">2021-2022</option>
+              <option value="2022-2023">2022-2023</option>
+              <option value="2023-2024" selected>2023-2024</option>
+            </select>
+          </div>
+        </div>
+        <div id="chart-mapa" style="height:320px;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PAGE 2: PARAÍBA NO NORDESTE -->
+  <section class="page" id="page-paraiba">
+    <h2 class="section-title">📍 Paraíba no Contexto do Nordeste</h2>
+    <div class="kpi-grid kpi-grid-4">
+      <div class="kpi-card" style="--kpi-color:#f59e0b">
+        <div class="kpi-label">Evasão PB 2023-24</div><div class="kpi-value">13,0%</div>
+        <div class="kpi-delta down">▼ −0,5pp vs 2020</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color:#3b82f6">
+        <div class="kpi-label">Média Nordeste 2023-24</div><div class="kpi-value">15,9%</div>
+        <div class="kpi-delta neutral">Média dos 9 estados</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color:#10b981">
+        <div class="kpi-label">Posição no Ranking NE</div><div class="kpi-value">1º</div>
+        <div class="kpi-delta down">✔ Melhor desempenho</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color:#8b5cf6">
+        <div class="kpi-label">Diferença vs Média NE</div><div class="kpi-value">−2,9pp</div>
+        <div class="kpi-delta down">▼ Abaixo da média</div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">📊 Paraíba vs Estados do Nordeste — Série Temporal</div>
+          <div class="chart-subtitle">Destaque em amarelo: Paraíba · Clique na legenda para filtrar</div>
+        </div>
+      </div>
+      <div id="chart-pb-nordeste" style="height:420px;"></div>
+    </div>
+    <div class="insight insight-green">
+      <span class="insight-icon">✅</span>
+      <span><b>Paraíba se destaca positivamente:</b> em 2023-2024 registrou a <b>menor taxa de evasão do Nordeste</b> (13,0%), abaixo da média (15,9%) em 2,9pp. Inversão de tendência positiva comparada a anos anteriores.</span>
+    </div>
+    <div class="chart-grid-2">
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">🏅 Ranking Nordeste 2023-2024</div>
+            <div class="chart-subtitle">Taxa de evasão por estado</div>
+          </div>
+        </div>
+        <div id="chart-ranking-ne" style="height:350px;"></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">🔥 Heatmap de Evasão — Nordeste</div>
+            <div class="chart-subtitle">Estados × Períodos 2020–2024</div>
+          </div>
+        </div>
+        <div id="chart-heatmap-ne" style="height:350px;"></div>
+      </div>
+    </div>
+    <div style="margin-top:1.5rem;" class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">🔍 Drilldown: Brasil → Paraíba → Rio Tinto</div>
+          <div class="chart-subtitle">TDA acumulada em cursos de TI (coorte 2020)</div>
+        </div>
+      </div>
+      <div id="chart-drilldown" style="height:380px;"></div>
+    </div>
+  </section>
+
+  <!-- PAGE 3: GÊNERO -->
+  <section class="page" id="page-genero">
+    <h2 class="section-title">👥 Análise de Gênero — Evasão por Sexo</h2>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">📊 Feminino vs Masculino por Região</div>
+          <div class="chart-subtitle">Selecione o período</div>
+        </div>
+        <div class="ctrl-group">
+          <label class="ctrl-label" for="genero-year">Período:</label>
+          <select class="ctrl-select" id="genero-year" onchange="updateGeneroRegiao()">
+            <option value="2020-2021">2020-2021</option>
+            <option value="2021-2022">2021-2022</option>
+            <option value="2022-2023">2022-2023</option>
+            <option value="2023-2024" selected>2023-2024</option>
+          </select>
+        </div>
+      </div>
+      <div id="chart-genero-regiao" style="height:360px;"></div>
+    </div>
+    <div class="insight insight-blue">
+      <span class="insight-icon">💡</span>
+      <span>A <b>taxa de evasão masculina é sistematicamente maior</b> em todas as regiões. No Nordeste 2023-2024: Feminino 15,4% vs Masculino 16,9% — diferença de <b>+1,5pp</b>.</span>
+    </div>
+    <div class="chart-grid-2">
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">📈 Evolução F vs M — Paraíba</div>
+            <div class="chart-subtitle">Série temporal 2020–2024</div>
+          </div>
+        </div>
+        <div id="chart-genero-serie-ne" style="height:320px;"></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">📊 F vs M — Estados NE 2023-24</div>
+            <div class="chart-subtitle">Barra agrupada</div>
+          </div>
+        </div>
+        <div id="chart-genero-estados-ne" style="height:320px;"></div>
+      </div>
+    </div>
+    <div style="margin-top:1.5rem;" class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">🗺️ Diferença de Gênero — Mapa por Estado</div>
+          <div class="chart-subtitle">Masculino − Feminino em pp (2023-2024)</div>
+        </div>
+      </div>
+      <div id="chart-genero-mapa" style="height:460px;"></div>
+    </div>
+  </section>
+
+  <!-- PAGE 4: PPI -->
+  <section class="page" id="page-ppi">
+    <h2 class="section-title">🎨 Recorte Étnico-Racial — PPI vs Não-PPI</h2>
+    <div class="insight insight-amber">
+      <span class="insight-icon">ℹ️</span>
+      <span><b>PPI</b> = Pretos, Pardos e Indígenas. Dados disponíveis apenas na base por UF, cobrindo todos os estados para 2020-2024.</span>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">⚖️ PPI vs Não-PPI — Estados do Nordeste</div>
+          <div class="chart-subtitle">Selecione o período para atualizar</div>
+        </div>
+        <div class="ctrl-group">
+          <label class="ctrl-label" for="ppi-year">Período:</label>
+          <select class="ctrl-select" id="ppi-year" onchange="updatePPI()">
+            <option value="2020-2021">2020-2021</option>
+            <option value="2021-2022">2021-2022</option>
+            <option value="2022-2023">2022-2023</option>
+            <option value="2023-2024" selected>2023-2024</option>
+          </select>
+        </div>
+      </div>
+      <div id="chart-ppi-ne" style="height:380px;"></div>
+    </div>
+    <div class="chart-grid-2">
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">📈 PPI vs Não-PPI — Paraíba (Série)</div>
+            <div class="chart-subtitle">2020–2024</div>
+          </div>
+        </div>
+        <div id="chart-ppi-pb-serie" style="height:320px;"></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">📊 Δ PPI − Não-PPI por Estado</div>
+            <div class="chart-subtitle">2023-2024 · positivo = PPI maior evasão</div>
+          </div>
+        </div>
+        <div id="chart-ppi-diff" style="height:320px;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PAGE 5: RIO TINTO -->
+  <section class="page" id="page-riotinto">
+    <h2 class="section-title">🎓 UFPB Campus Rio Tinto — Cursos de TI</h2>
+    <div class="kpi-grid kpi-grid-4">
+      <div class="kpi-card" style="--kpi-color:#818cf8">
+        <div class="kpi-label">Lic. C. Computação — Ingressantes</div>
+        <div class="kpi-value">93</div><div class="kpi-delta neutral">Coorte 2020</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color:#818cf8">
+        <div class="kpi-label">Lic. C. Computação — TDA 2024</div>
+        <div class="kpi-value">55,9%</div><div class="kpi-delta up">▲ Alto · 52 desistiram</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color:#34d399">
+        <div class="kpi-label">Sist. Informação — Ingressantes</div>
+        <div class="kpi-value">47</div><div class="kpi-delta neutral">Coorte 2020</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color:#34d399">
+        <div class="kpi-label">Sist. Informação — TDA 2024</div>
+        <div class="kpi-value">48,9%</div><div class="kpi-delta up">▲ Alto · 23 desistiram</div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">🔀 Funil de Retenção — Trajetória da Coorte 2020</div>
+          <div class="chart-subtitle">Evolução do número de alunos por ano de referência</div>
+        </div>
+        <div class="ctrl-group">
+          <label class="ctrl-label">Curso:</label>
+          <div class="year-tabs">
+            <div class="year-tab active" onclick="switchFunnel('cc',this)">Lic. CC</div>
+            <div class="year-tab" onclick="switchFunnel('si',this)">Sist. Info.</div>
+            <div class="year-tab" onclick="switchFunnel('both',this)">Comparar</div>
+          </div>
+        </div>
+      </div>
+      <div id="chart-funil" style="height:400px;"></div>
+    </div>
+    <div class="insight insight-red">
+      <span class="insight-icon">⚠️</span>
+      <span>A <b>Lic. em C. Computação</b> perdeu <b>55,9%</b> dos ingressantes em 4 anos — o maior salto foi entre 2021→2022 (TADA: 31,2%). <b>Sist. Informação</b>: TDA de 48,9% com maior perda também no 2º ano (34,0%).</span>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">📉 TDA Acumulada vs TADA Anual</div>
+          <div class="chart-subtitle">Barras = TDA acumulada · Linhas pontilhadas = TADA do ano</div>
+        </div>
+      </div>
+      <div id="chart-tda-cursos" style="height:400px;"></div>
+    </div>
+    <div class="chart-grid-2">
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">📊 Rio Tinto vs PB vs Brasil</div>
+            <div class="chart-subtitle">TDA acumulada 2024 em cursos TI</div>
+          </div>
+        </div>
+        <div id="chart-rt-vs-contexto" style="height:320px;"></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">🎯 Distribuição de Alunos em 2024</div>
+            <div class="chart-subtitle">Permanência · Conclusão · Desistência</div>
+          </div>
+        </div>
+        <div id="chart-dist-2024" style="height:320px;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PAGE 6: TABELA -->
+  <section class="page" id="page-tabela">
+    <h2 class="section-title">📋 Tabela Interativa — Exploração dos Dados</h2>
+    <div class="controls-bar">
+      <div class="ctrl-group">
+        <label class="ctrl-label" for="table-region">Região:</label>
+        <select class="ctrl-select" id="table-region" onchange="filterTable()">
+          <option value="all">Todas</option>
+          <option value="ne">Nordeste</option>
+          <option value="outros">Outras Regiões</option>
+        </select>
+      </div>
+      <div class="ctrl-group">
+        <label class="ctrl-label" for="table-year">Período:</label>
+        <select class="ctrl-select" id="table-year" onchange="filterTable()">
+          <option value="all">Todos</option>
+          <option value="2020-2021">2020-2021</option>
+          <option value="2021-2022">2021-2022</option>
+          <option value="2022-2023">2022-2023</option>
+          <option value="2023-2024">2023-2024</option>
+        </select>
+      </div>
+      <div class="ctrl-group">
+        <label class="ctrl-label" for="table-sort">Ordenar:</label>
+        <select class="ctrl-select" id="table-sort" onchange="filterTable()">
+          <option value="total-desc">Evasão ↓</option>
+          <option value="total-asc">Evasão ↑</option>
+          <option value="uf-asc">Estado A-Z</option>
+          <option value="ano-asc">Período ↑</option>
+        </select>
+      </div>
+      <div class="ctrl-group">
+        <input type="text" class="ctrl-select" id="table-search" placeholder="🔍 Buscar estado..." oninput="filterTable()" style="width:180px;">
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="table-wrap">
+        <table id="main-table">
+          <thead>
+            <tr>
+              <th onclick="sortTable('uf')">Estado ↕</th>
+              <th onclick="sortTable('ano')">Período ↕</th>
+              <th onclick="sortTable('total')">Total ↕</th>
+              <th onclick="sortTable('fem')">Feminino ↕</th>
+              <th onclick="sortTable('masc')">Masculino ↕</th>
+              <th onclick="sortTable('ppi')">PPI ↕</th>
+              <th onclick="sortTable('nppi')">Não-PPI ↕</th>
+              <th>Nível</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+      <div id="table-count" style="font-size:0.73rem;color:var(--text-secondary);margin-top:.75rem;padding:0 .25rem;"></div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <p>Fonte: <a href="https://www.gov.br/inep/pt-br">INEP/MEC</a> — Censo da Educação Superior · Indicadores de Trajetória (2020–2024) &nbsp;|&nbsp; TCC — UFPB Campus Rio Tinto</p>
+</footer>
+
+<script>
+// ═══════════════════════════════════════
+//  DADOS EMBUTIDOS
+// ═══════════════════════════════════════
+const dadosRegiao=[
+  {ano:"2020-2021",regiao:"Centro-Oeste",total:13.8,fem:12.9,masc:14.9},
+  {ano:"2020-2021",regiao:"Nordeste",total:13.5,fem:13.1,masc:14.0},
+  {ano:"2020-2021",regiao:"Norte",total:15.0,fem:14.6,masc:15.5},
+  {ano:"2020-2021",regiao:"Sudeste",total:13.6,fem:12.7,masc:14.7},
+  {ano:"2020-2021",regiao:"Sul",total:12.5,fem:11.8,masc:13.5},
+  {ano:"2021-2022",regiao:"Centro-Oeste",total:16.9,fem:16.1,masc:17.9},
+  {ano:"2021-2022",regiao:"Nordeste",total:15.3,fem:14.9,masc:15.8},
+  {ano:"2021-2022",regiao:"Norte",total:17.2,fem:16.7,masc:18.0},
+  {ano:"2021-2022",regiao:"Sudeste",total:15.7,fem:14.9,masc:16.7},
+  {ano:"2021-2022",regiao:"Sul",total:15.7,fem:15.2,masc:16.5},
+  {ano:"2022-2023",regiao:"Centro-Oeste",total:16.6,fem:16.1,masc:17.3},
+  {ano:"2022-2023",regiao:"Nordeste",total:16.1,fem:15.6,masc:16.9},
+  {ano:"2022-2023",regiao:"Norte",total:17.8,fem:17.4,masc:18.4},
+  {ano:"2022-2023",regiao:"Sudeste",total:15.2,fem:14.8,masc:15.8},
+  {ano:"2022-2023",regiao:"Sul",total:17.1,fem:16.6,masc:17.8},
+  {ano:"2023-2024",regiao:"Centro-Oeste",total:18.7,fem:18.2,masc:19.3},
+  {ano:"2023-2024",regiao:"Nordeste",total:16.0,fem:15.4,masc:16.9},
+  {ano:"2023-2024",regiao:"Norte",total:18.4,fem:17.5,masc:19.7},
+  {ano:"2023-2024",regiao:"Sudeste",total:17.7,fem:17.3,masc:18.3},
+  {ano:"2023-2024",regiao:"Sul",total:17.8,fem:17.4,masc:18.3},
+];
+
+const dadosUF=[
+  {ano:"2020-2021",uf:"Acre",total:14.3,fem:14.0,masc:14.8,ppi:14.0,nppi:11.2},
+  {ano:"2020-2021",uf:"Alagoas",total:13.2,fem:12.2,masc:14.5,ppi:13.2,nppi:13.1},
+  {ano:"2020-2021",uf:"Amapá",total:15.7,fem:15.6,masc:15.9,ppi:16.1,nppi:8.4},
+  {ano:"2020-2021",uf:"Amazonas",total:13.5,fem:13.2,masc:13.9,ppi:12.3,nppi:14.3},
+  {ano:"2020-2021",uf:"Bahia",total:14.7,fem:14.4,masc:15.3,ppi:13.3,nppi:14.0},
+  {ano:"2020-2021",uf:"Ceará",total:13.1,fem:13.2,masc:13.0,ppi:12.3,nppi:11.2},
+  {ano:"2020-2021",uf:"Distrito Federal",total:11.0,fem:10.3,masc:12.0,ppi:11.2,nppi:9.4},
+  {ano:"2020-2021",uf:"Espírito Santo",total:13.4,fem:12.8,masc:14.2,ppi:13.3,nppi:10.4},
+  {ano:"2020-2021",uf:"Goiás",total:15.1,fem:14.1,masc:16.6,ppi:14.5,nppi:12.1},
+  {ano:"2020-2021",uf:"Maranhão",total:12.5,fem:12.0,masc:13.3,ppi:11.4,nppi:11.0},
+  {ano:"2020-2021",uf:"Mato Grosso",total:13.7,fem:13.1,masc:14.5,ppi:11.5,nppi:11.4},
+  {ano:"2020-2021",uf:"Mato Grosso do Sul",total:15.8,fem:14.7,masc:17.2,ppi:14.6,nppi:12.6},
+  {ano:"2020-2021",uf:"Minas Gerais",total:12.0,fem:11.0,masc:13.2,ppi:11.9,nppi:10.0},
+  {ano:"2020-2021",uf:"Paraná",total:11.8,fem:10.8,masc:13.1,ppi:12.2,nppi:10.8},
+  {ano:"2020-2021",uf:"Paraíba",total:13.5,fem:12.8,masc:14.3,ppi:12.9,nppi:12.8},
+  {ano:"2020-2021",uf:"Pará",total:15.6,fem:15.3,masc:16.1,ppi:13.8,nppi:14.2},
+  {ano:"2020-2021",uf:"Pernambuco",total:14.3,fem:13.5,masc:15.4,ppi:13.3,nppi:13.7},
+  {ano:"2020-2021",uf:"Piauí",total:13.5,fem:13.3,masc:13.9,ppi:11.7,nppi:11.7},
+  {ano:"2020-2021",uf:"Rio Grande do Norte",total:10.8,fem:11.1,masc:10.5,ppi:9.7,nppi:9.6},
+  {ano:"2020-2021",uf:"Rio Grande do Sul",total:11.4,fem:11.0,masc:12.0,ppi:11.2,nppi:10.1},
+  {ano:"2020-2021",uf:"Rio de Janeiro",total:10.2,fem:9.5,masc:11.1,ppi:9.8,nppi:8.7},
+  {ano:"2020-2021",uf:"Rondônia",total:15.7,fem:14.8,masc:17.1,ppi:15.8,nppi:13.0},
+  {ano:"2020-2021",uf:"Roraima",total:18.8,fem:18.5,masc:19.3,ppi:17.3,nppi:17.9},
+  {ano:"2020-2021",uf:"Santa Catarina",total:15.2,fem:14.4,masc:16.3,ppi:14.5,nppi:13.0},
+  {ano:"2020-2021",uf:"Sergipe",total:12.7,fem:11.8,masc:13.9,ppi:11.4,nppi:11.4},
+  {ano:"2020-2021",uf:"São Paulo",total:15.8,fem:14.8,masc:17.0,ppi:17.1,nppi:14.1},
+  {ano:"2020-2021",uf:"Tocantins",total:13.6,fem:13.0,masc:14.4,ppi:12.7,nppi:11.3},
+  {ano:"2021-2022",uf:"Acre",total:15.2,fem:14.7,masc:15.7,ppi:13.5,nppi:20.0},
+  {ano:"2021-2022",uf:"Alagoas",total:16.8,fem:15.3,masc:18.9,ppi:15.8,nppi:16.9},
+  {ano:"2021-2022",uf:"Amapá",total:18.0,fem:17.4,masc:18.9,ppi:18.1,nppi:18.5},
+  {ano:"2021-2022",uf:"Amazonas",total:16.1,fem:15.3,masc:17.0,ppi:13.1,nppi:23.3},
+  {ano:"2021-2022",uf:"Bahia",total:17.1,fem:16.9,masc:17.5,ppi:14.9,nppi:19.7},
+  {ano:"2021-2022",uf:"Ceará",total:14.4,fem:14.0,masc:14.8,ppi:13.6,nppi:16.0},
+  {ano:"2021-2022",uf:"Distrito Federal",total:14.5,fem:13.5,masc:15.7,ppi:14.5,nppi:14.1},
+  {ano:"2021-2022",uf:"Espírito Santo",total:16.4,fem:15.4,masc:17.6,ppi:16.2,nppi:15.0},
+  {ano:"2021-2022",uf:"Goiás",total:18.4,fem:17.3,masc:19.9,ppi:16.9,nppi:18.9},
+  {ano:"2021-2022",uf:"Maranhão",total:13.4,fem:13.2,masc:13.7,ppi:12.2,nppi:16.2},
+  {ano:"2021-2022",uf:"Mato Grosso",total:16.7,fem:16.4,masc:17.1,ppi:14.3,nppi:19.9},
+  {ano:"2021-2022",uf:"Mato Grosso do Sul",total:18.2,fem:17.5,masc:19.1,ppi:18.0,nppi:16.7},
+  {ano:"2021-2022",uf:"Minas Gerais",total:13.6,fem:13.0,masc:14.5,ppi:14.0,nppi:13.2},
+  {ano:"2021-2022",uf:"Paraná",total:14.4,fem:13.9,masc:15.0,ppi:15.8,nppi:14.0},
+  {ano:"2021-2022",uf:"Paraíba",total:15.2,fem:14.4,masc:16.2,ppi:14.4,nppi:15.7},
+  {ano:"2021-2022",uf:"Pará",total:17.9,fem:17.6,masc:18.3,ppi:15.3,nppi:23.1},
+  {ano:"2021-2022",uf:"Pernambuco",total:16.0,fem:15.4,masc:16.8,ppi:15.1,nppi:17.3},
+  {ano:"2021-2022",uf:"Piauí",total:12.0,fem:11.9,masc:12.2,ppi:10.1,nppi:14.4},
+  {ano:"2021-2022",uf:"Rio Grande do Norte",total:13.8,fem:14.4,masc:13.1,ppi:11.8,nppi:13.0},
+  {ano:"2021-2022",uf:"Rio Grande do Sul",total:15.2,fem:14.8,masc:15.8,ppi:16.5,nppi:15.8},
+  {ano:"2021-2022",uf:"Rio de Janeiro",total:12.8,fem:12.3,masc:13.4,ppi:13.4,nppi:12.6},
+  {ano:"2021-2022",uf:"Rondônia",total:21.5,fem:20.4,masc:23.1,ppi:20.2,nppi:24.5},
+  {ano:"2021-2022",uf:"Roraima",total:19.4,fem:19.1,masc:19.8,ppi:17.3,nppi:26.1},
+  {ano:"2021-2022",uf:"Santa Catarina",total:18.7,fem:17.7,masc:20.1,ppi:18.8,nppi:19.3},
+  {ano:"2021-2022",uf:"Sergipe",total:17.6,fem:16.9,masc:18.7,ppi:16.3,nppi:18.2},
+  {ano:"2021-2022",uf:"São Paulo",total:17.8,fem:16.9,masc:19.0,ppi:19.1,nppi:16.3},
+  {ano:"2021-2022",uf:"Tocantins",total:12.6,fem:12.0,masc:13.5,ppi:11.4,nppi:13.4},
+  {ano:"2022-2023",uf:"Acre",total:17.6,fem:16.8,masc:18.6,ppi:16.1,nppi:18.0},
+  {ano:"2022-2023",uf:"Alagoas",total:15.7,fem:14.7,masc:17.1,ppi:14.4,nppi:15.1},
+  {ano:"2022-2023",uf:"Amapá",total:18.5,fem:17.8,masc:19.4,ppi:18.0,nppi:16.7},
+  {ano:"2022-2023",uf:"Amazonas",total:17.3,fem:17.3,masc:17.3,ppi:12.2,nppi:21.0},
+  {ano:"2022-2023",uf:"Bahia",total:17.3,fem:16.6,masc:18.4,ppi:15.2,nppi:16.5},
+  {ano:"2022-2023",uf:"Ceará",total:15.8,fem:15.8,masc:15.8,ppi:14.5,nppi:14.4},
+  {ano:"2022-2023",uf:"Distrito Federal",total:14.7,fem:14.0,masc:15.6,ppi:13.8,nppi:13.1},
+  {ano:"2022-2023",uf:"Espírito Santo",total:15.9,fem:15.4,masc:16.7,ppi:15.7,nppi:13.0},
+  {ano:"2022-2023",uf:"Goiás",total:17.1,fem:16.5,masc:18.1,ppi:16.2,nppi:14.5},
+  {ano:"2022-2023",uf:"Maranhão",total:14.3,fem:13.9,masc:14.7,ppi:11.9,nppi:14.0},
+  {ano:"2022-2023",uf:"Mato Grosso",total:17.9,fem:17.6,masc:18.4,ppi:15.8,nppi:17.0},
+  {ano:"2022-2023",uf:"Mato Grosso do Sul",total:17.2,fem:16.9,masc:17.5,ppi:16.1,nppi:14.3},
+  {ano:"2022-2023",uf:"Minas Gerais",total:14.5,fem:14.1,masc:15.1,ppi:14.4,nppi:12.7},
+  {ano:"2022-2023",uf:"Paraná",total:14.7,fem:14.3,masc:15.3,ppi:16.4,nppi:13.6},
+  {ano:"2022-2023",uf:"Paraíba",total:14.4,fem:13.6,masc:15.6,ppi:13.7,nppi:14.1},
+  {ano:"2022-2023",uf:"Pará",total:17.6,fem:17.3,masc:17.9,ppi:14.3,nppi:18.9},
+  {ano:"2022-2023",uf:"Pernambuco",total:16.3,fem:15.9,masc:17.0,ppi:14.9,nppi:16.2},
+  {ano:"2022-2023",uf:"Piauí",total:12.3,fem:11.9,masc:12.8,ppi:10.4,nppi:13.5},
+  {ano:"2022-2023",uf:"Rio Grande do Norte",total:22.2,fem:21.0,masc:23.6,ppi:22.0,nppi:21.0},
+  {ano:"2022-2023",uf:"Rio Grande do Sul",total:18.8,fem:18.4,masc:19.4,ppi:20.0,nppi:16.8},
+  {ano:"2022-2023",uf:"Rio de Janeiro",total:14.1,fem:13.9,masc:14.4,ppi:13.5,nppi:11.7},
+  {ano:"2022-2023",uf:"Rondônia",total:18.9,fem:18.0,masc:20.3,ppi:18.0,nppi:18.8},
+  {ano:"2022-2023",uf:"Roraima",total:21.9,fem:20.9,masc:23.4,ppi:19.9,nppi:23.4},
+  {ano:"2022-2023",uf:"Santa Catarina",total:18.3,fem:17.6,masc:19.4,ppi:19.1,nppi:16.1},
+  {ano:"2022-2023",uf:"Sergipe",total:15.8,fem:15.4,masc:16.4,ppi:14.6,nppi:15.0},
+  {ano:"2022-2023",uf:"São Paulo",total:15.9,fem:15.4,masc:16.6,ppi:17.0,nppi:13.9},
+  {ano:"2022-2023",uf:"Tocantins",total:17.3,fem:16.4,masc:18.8,ppi:17.0,nppi:14.5},
+  {ano:"2023-2024",uf:"Acre",total:17.6,fem:16.8,masc:18.8,ppi:15.6,nppi:19.9},
+  {ano:"2023-2024",uf:"Alagoas",total:17.3,fem:16.0,masc:19.3,ppi:17.0,nppi:15.0},
+  {ano:"2023-2024",uf:"Amapá",total:19.1,fem:18.4,masc:20.1,ppi:17.1,nppi:20.7},
+  {ano:"2023-2024",uf:"Amazonas",total:20.9,fem:19.6,masc:22.6,ppi:19.5,nppi:23.8},
+  {ano:"2023-2024",uf:"Bahia",total:17.5,fem:16.8,masc:18.5,ppi:15.8,nppi:19.9},
+  {ano:"2023-2024",uf:"Ceará",total:17.1,fem:16.8,masc:17.5,ppi:16.3,nppi:16.8},
+  {ano:"2023-2024",uf:"Distrito Federal",total:16.9,fem:16.1,masc:17.8,ppi:15.3,nppi:15.6},
+  {ano:"2023-2024",uf:"Espírito Santo",total:19.2,fem:18.6,masc:20.0,ppi:18.9,nppi:17.3},
+  {ano:"2023-2024",uf:"Goiás",total:19.6,fem:19.0,masc:20.5,ppi:18.3,nppi:19.6},
+  {ano:"2023-2024",uf:"Maranhão",total:17.5,fem:16.7,masc:18.8,ppi:15.4,nppi:20.0},
+  {ano:"2023-2024",uf:"Mato Grosso",total:18.5,fem:18.4,masc:18.5,ppi:15.8,nppi:20.8},
+  {ano:"2023-2024",uf:"Mato Grosso do Sul",total:20.1,fem:19.7,masc:20.6,ppi:18.9,nppi:18.6},
+  {ano:"2023-2024",uf:"Minas Gerais",total:17.3,fem:17.1,masc:17.6,ppi:17.5,nppi:16.2},
+  {ano:"2023-2024",uf:"Paraná",total:15.9,fem:15.6,masc:16.3,ppi:16.9,nppi:15.0},
+  {ano:"2023-2024",uf:"Paraíba",total:13.0,fem:12.2,masc:14.2,ppi:12.8,nppi:12.9},
+  {ano:"2023-2024",uf:"Pará",total:17.6,fem:16.8,masc:18.7,ppi:15.4,nppi:19.2},
+  {ano:"2023-2024",uf:"Pernambuco",total:15.3,fem:14.5,masc:16.3,ppi:14.7,nppi:14.5},
+  {ano:"2023-2024",uf:"Piauí",total:11.6,fem:11.3,masc:12.0,ppi:9.8,nppi:12.1},
+  {ano:"2023-2024",uf:"Rio Grande do Norte",total:15.0,fem:14.2,masc:15.9,ppi:14.3,nppi:13.7},
+  {ano:"2023-2024",uf:"Rio Grande do Sul",total:17.9,fem:17.7,masc:18.1,ppi:20.8,nppi:17.5},
+  {ano:"2023-2024",uf:"Rio de Janeiro",total:18.2,fem:17.7,masc:18.8,ppi:16.9,nppi:16.8},
+  {ano:"2023-2024",uf:"Rondônia",total:18.8,fem:17.6,masc:20.7,ppi:18.6,nppi:18.9},
+  {ano:"2023-2024",uf:"Roraima",total:19.1,fem:18.8,masc:19.7,ppi:16.4,nppi:20.4},
+  {ano:"2023-2024",uf:"Santa Catarina",total:20.6,fem:19.8,masc:21.8,ppi:23.4,nppi:20.1},
+  {ano:"2023-2024",uf:"Sergipe",total:16.3,fem:15.8,masc:17.1,ppi:14.8,nppi:17.0},
+  {ano:"2023-2024",uf:"São Paulo",total:17.6,fem:17.2,masc:18.2,ppi:18.0,nppi:15.7},
+  {ano:"2023-2024",uf:"Tocantins",total:15.1,fem:14.9,masc:15.6,ppi:12.3,nppi:18.0},
+];
+
+const estadosNordeste=["Alagoas","Bahia","Ceará","Maranhão","Paraíba","Pernambuco","Piauí","Rio Grande do Norte","Sergipe"];
+
+const ufToCode={
+  "Acre":"AC","Alagoas":"AL","Amapá":"AP","Amazonas":"AM","Bahia":"BA","Ceará":"CE",
+  "Distrito Federal":"DF","Espírito Santo":"ES","Goiás":"GO","Maranhão":"MA",
+  "Mato Grosso":"MT","Mato Grosso do Sul":"MS","Minas Gerais":"MG","Paraná":"PR",
+  "Paraíba":"PB","Pará":"PA","Pernambuco":"PE","Piauí":"PI","Rio Grande do Norte":"RN",
+  "Rio Grande do Sul":"RS","Rio de Janeiro":"RJ","Rondônia":"RO","Roraima":"RR",
+  "Santa Catarina":"SC","Sergipe":"SE","São Paulo":"SP","Tocantins":"TO"
+};
+
+const dadosCC=[
+  {ano:2020,ing:93,perm:92,conc:0,desist:1,tda:1.1,tada:1.1},
+  {ano:2021,ing:93,perm:87,conc:0,desist:5,tda:6.5,tada:5.4},
+  {ano:2022,ing:93,perm:58,conc:0,desist:29,tda:37.6,tada:31.2},
+  {ano:2023,ing:93,perm:53,conc:0,desist:5,tda:43.0,tada:5.4},
+  {ano:2024,ing:93,perm:39,conc:2,desist:12,tda:55.9,tada:12.9},
+];
+const dadosSI=[
+  {ano:2020,ing:47,perm:46,conc:0,desist:1,tda:2.1,tada:2.1},
+  {ano:2021,ing:47,perm:46,conc:0,desist:0,tda:2.1,tada:0.0},
+  {ano:2022,ing:47,perm:30,conc:0,desist:16,tda:36.2,tada:34.0},
+  {ano:2023,ing:47,perm:28,conc:1,desist:1,tda:38.3,tada:2.1},
+  {ano:2024,ing:47,perm:15,conc:8,desist:5,tda:48.9,tada:10.6},
+];
+
+const dadosDrill={
+  "Brasil (TI)":[{a:"2020",v:5.2},{a:"2021",v:12.8},{a:"2022",v:24.1},{a:"2023",v:28.3},{a:"2024",v:32.5}],
+  "Paraíba (TI)":[{a:"2020",v:3.8},{a:"2021",v:9.1},{a:"2022",v:21.4},{a:"2023",v:25.7},{a:"2024",v:29.2}],
+  "Rio Tinto (UFPB)":[{a:"2020",v:1.6},{a:"2021",v:4.3},{a:"2022",v:36.9},{a:"2023",v:40.7},{a:"2024",v:52.4}],
+};
+
+// ═══════════════════════════════════════
+//  LAYOUT BASE
+// ═══════════════════════════════════════
+const L={
+  paper_bgcolor:'rgba(0,0,0,0)',
+  plot_bgcolor:'#111827',
+  font:{family:'Inter,sans-serif',color:'#94a3b8',size:12},
+  margin:{t:30,b:50,l:55,r:20},
+  legend:{bgcolor:'rgba(17,24,39,0.8)',bordercolor:'#1f2f4a',borderwidth:1,font:{size:11}},
+  xaxis:{gridcolor:'#1f2f4a',linecolor:'#1f2f4a',tickfont:{size:11}},
+  yaxis:{gridcolor:'#1f2f4a',linecolor:'#1f2f4a',tickfont:{size:11}},
+};
+const CFG={responsive:true,displayModeBar:false};
+
+const CR={"Norte":"#06b6d4","Nordeste":"#f59e0b","Centro-Oeste":"#8b5cf6","Sudeste":"#3b82f6","Sul":"#10b981"};
+const CNE={"Alagoas":"#3b82f6","Bahia":"#ef4444","Ceará":"#10b981","Maranhão":"#8b5cf6",
+           "Paraíba":"#f59e0b","Pernambuco":"#ec4899","Piauí":"#06b6d4","Rio Grande do Norte":"#84cc16","Sergipe":"#0ea5e9"};
+
+// ═══════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════
+const init={};
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
+  if(!init[id]){init[id]=true;setTimeout(()=>initPage(id),50);}
+}
+function initPage(id){
+  if(id==='nacional') initNacional();
+  if(id==='paraiba')  initParaiba();
+  if(id==='genero')   initGenero();
+  if(id==='ppi')      initPPI();
+  if(id==='riotinto') initRioTinto();
+  if(id==='tabela')   initTabela();
+}
+
+// ═══════════════════════════════════════
+//  PAGE 1: NACIONAL
+// ═══════════════════════════════════════
+function initNacional(){
+  // Série temporal
+  const regioes=["Norte","Nordeste","Centro-Oeste","Sudeste","Sul"];
+  Plotly.newPlot('chart-serie-regional',
+    regioes.map(r=>{
+      const d=dadosRegiao.filter(x=>x.regiao===r);
+      const isNE=r==='Nordeste';
+      return{x:d.map(x=>x.ano),y:d.map(x=>x.total),name:r,mode:'lines+markers',
+             line:{color:CR[r],width:isNE?4:2.5},
+             marker:{size:isNE?10:7,color:CR[r],line:{color:'#0a0f1e',width:isNE?2:1}},
+             opacity:isNE?1:0.8,
+             hovertemplate:`<b>${r}</b><br>%{x}<br>Evasão: <b>%{y:.1f}%</b><extra></extra>`};
+    }),
+    {...L,yaxis:{...L.yaxis,title:{text:'Taxa de Evasão (%)',font:{size:11}},range:[10,22]}},CFG);
+
+  // Ranking
+  const d24=dadosRegiao.filter(x=>x.ano==='2023-2024').sort((a,b)=>a.total-b.total);
+  const med=d24.reduce((s,x)=>s+x.total,0)/d24.length;
+  Plotly.newPlot('chart-ranking-regiao',[{
+    type:'bar',orientation:'h',
+    x:d24.map(x=>x.total),y:d24.map(x=>x.regiao),
+    marker:{color:d24.map(x=>CR[x.regiao]||'#475569')},
+    text:d24.map(x=>`<b>${x.total.toFixed(1)}%</b>`),
+    textposition:'outside',textfont:{color:'#f1f5f9',size:12},
+    hovertemplate:'<b>%{y}</b><br>%{x:.1f}%<extra></extra>'
+  }],{
+    ...L,
+    shapes:[{type:'line',x0:med,x1:med,y0:-0.5,y1:d24.length-0.5,line:{color:'#ef4444',width:2,dash:'dash'}}],
+    annotations:[{x:med,y:d24.length-0.7,text:`<b>Média: ${med.toFixed(1)}%</b>`,showarrow:false,font:{color:'#ef4444',size:11},xref:'x',yref:'y'}],
+    xaxis:{...L.xaxis,range:[0,23]},
+    yaxis:{...L.yaxis,gridcolor:'rgba(0,0,0,0)'},
+    margin:{t:20,b:50,l:100,r:30},
+  },CFG);
+
+  drawMap('2023-2024');
+}
+
+function drawMap(ano){
+  const d=dadosUF.filter(x=>x.ano===ano);
+  Plotly.newPlot('chart-mapa',[{
+    type:'choropleth',
+    geojson:'https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson',
+    featureidkey:'properties.sigla',
+    locations:d.map(x=>ufToCode[x.uf]||''),
+    z:d.map(x=>x.total),
+    text:d.map(x=>`<b>${x.uf}</b><br>Evasão: ${x.total.toFixed(1)}%<br>F:${x.fem}% M:${x.masc}%`),
+    hovertemplate:'%{text}<extra></extra>',
+    colorscale:[[0,'#064e3b'],[0.4,'#d97706'],[1,'#7f1d1d']],
+    zmin:9,zmax:23,
+    colorbar:{title:{text:'%',font:{color:'#94a3b8',size:10}},tickfont:{color:'#94a3b8',size:9},
+              bgcolor:'rgba(17,24,39,0.7)',bordercolor:'#1f2f4a',borderwidth:1},
+    marker:{line:{color:'#0a0f1e',width:1}},
+  }],{
+    ...L,
+    geo:{scope:'south america',resolution:50,bgcolor:'rgba(0,0,0,0)',landcolor:'#1a2235',
+         subunitcolor:'#0a0f1e',showcoastlines:false,showframe:false,
+         center:{lat:-15.5,lon:-55},projection:{scale:2.6}},
+    margin:{t:10,b:10,l:0,r:0},
+  },CFG);
+}
+function updateMap(){drawMap(document.getElementById('map-year-select').value);}
+
+// ═══════════════════════════════════════
+//  PAGE 2: PARAÍBA
+// ═══════════════════════════════════════
+function initParaiba(){
+  const dNE=dadosUF.filter(x=>estadosNordeste.includes(x.uf));
+
+  // Série PB vs NE
+  Plotly.newPlot('chart-pb-nordeste',
+    estadosNordeste.map(uf=>{
+      const d=dNE.filter(x=>x.uf===uf),isPB=uf==='Paraíba';
+      return{x:d.map(x=>x.ano),y:d.map(x=>x.total),name:uf,mode:'lines+markers',
+             line:{color:CNE[uf],width:isPB?5:2},
+             marker:{size:isPB?11:6,color:CNE[uf],line:{color:'#0a0f1e',width:isPB?2:1}},
+             opacity:isPB?1:0.65,
+             hovertemplate:`<b>${uf}</b><br>%{x}<br>Evasão: <b>%{y:.1f}%</b><extra></extra>`};
+    }),
+    {...L,yaxis:{...L.yaxis,title:{text:'Taxa (%)',font:{size:11}},range:[8,25]},
+     legend:{...L.legend,orientation:'v',x:1.01,y:0.5},margin:{t:20,b:50,l:55,r:140}},CFG);
+
+  // Ranking NE 2024
+  const dNE24=dNE.filter(x=>x.ano==='2023-2024').sort((a,b)=>a.total-b.total);
+  const medNE=dNE24.reduce((s,x)=>s+x.total,0)/dNE24.length;
+  Plotly.newPlot('chart-ranking-ne',[{
+    type:'bar',orientation:'h',
+    x:dNE24.map(x=>x.total),y:dNE24.map(x=>x.uf),
+    marker:{color:dNE24.map(x=>x.uf==='Paraíba'?'#f59e0b':'#334155')},
+    text:dNE24.map(x=>`${x.total.toFixed(1)}%`),textposition:'outside',textfont:{color:'#f1f5f9',size:11},
+    hovertemplate:'<b>%{y}</b><br>%{x:.1f}%<extra></extra>'
+  }],{
+    ...L,
+    shapes:[{type:'line',x0:medNE,x1:medNE,y0:-0.5,y1:dNE24.length-0.5,line:{color:'#ef4444',width:2,dash:'dash'}}],
+    annotations:[{x:medNE,y:dNE24.length-0.7,text:`<b>Média: ${medNE.toFixed(1)}%</b>`,showarrow:false,font:{color:'#ef4444',size:10}}],
+    xaxis:{...L.xaxis,range:[0,24]},yaxis:{...L.yaxis,gridcolor:'rgba(0,0,0,0)'},
+    margin:{t:20,b:50,l:120,r:30},
+  },CFG);
+
+  // Heatmap
+  const anos=["2020-2021","2021-2022","2022-2023","2023-2024"];
+  Plotly.newPlot('chart-heatmap-ne',[{
+    type:'heatmap',
+    z:estadosNordeste.map(uf=>anos.map(ano=>{const r=dNE.find(x=>x.uf===uf&&x.ano===ano);return r?r.total:null;})),
+    x:anos,y:estadosNordeste,
+    colorscale:[[0,'#064e3b'],[0.4,'#d97706'],[1,'#7f1d1d']],
+    zmin:9,zmax:23,
+    text:estadosNordeste.map(uf=>anos.map(ano=>{const r=dNE.find(x=>x.uf===uf&&x.ano===ano);return r?r.total.toFixed(1)+'%':'';})),
+    texttemplate:'%{text}',textfont:{size:10,color:'#f1f5f9'},
+    hovertemplate:'<b>%{y}</b> · %{x}<br>Evasão: <b>%{z:.1f}%</b><extra></extra>',
+    colorbar:{tickfont:{color:'#94a3b8',size:9},bordercolor:'#1f2f4a',borderwidth:1,
+              bgcolor:'rgba(17,24,39,0.7)',title:{text:'%',font:{color:'#94a3b8',size:10}}},
+  }],{...L,margin:{t:20,b:80,l:120,r:60},xaxis:{...L.xaxis,tickangle:-30}},CFG);
+
+  // Drilldown
+  const cD={"Brasil (TI)":"#3b82f6","Paraíba (TI)":"#f59e0b","Rio Tinto (UFPB)":"#ef4444"};
+  Plotly.newPlot('chart-drilldown',
+    Object.entries(dadosDrill).map(([n,d])=>({
+      x:d.map(x=>x.a),y:d.map(x=>x.v),name:n,mode:'lines+markers',
+      line:{color:cD[n],width:3},
+      marker:{size:10,color:cD[n],line:{color:'#0a0f1e',width:2}},
+      hovertemplate:`<b>${n}</b><br>Ano: %{x}<br>TDA: <b>%{y:.1f}%</b><extra></extra>`
+    })),
+    {...L,
+     xaxis:{...L.xaxis,title:{text:'Ano de Referência',font:{size:11}}},
+     yaxis:{...L.yaxis,title:{text:'TDA Acumulada (%)',font:{size:11}}},
+     legend:{...L.legend,orientation:'h',x:0.5,y:-0.25,xanchor:'center'},
+     margin:{t:20,b:80,l:55,r:20}},CFG);
+}
+
+// ═══════════════════════════════════════
+//  PAGE 3: GÊNERO
+// ═══════════════════════════════════════
+function initGenero(){
+  updateGeneroRegiao();
+
+  // Série PB
+  const dPB=dadosUF.filter(x=>x.uf==='Paraíba');
+  Plotly.newPlot('chart-genero-serie-ne',[
+    {x:dPB.map(x=>x.ano),y:dPB.map(x=>x.fem),name:'Feminino',mode:'lines+markers',
+     line:{color:'#ec4899',width:3},marker:{size:8,color:'#ec4899'},
+     hovertemplate:'<b>Feminino — PB</b><br>%{x}<br>%{y:.1f}%<extra></extra>'},
+    {x:dPB.map(x=>x.ano),y:dPB.map(x=>x.masc),name:'Masculino',mode:'lines+markers',
+     line:{color:'#3b82f6',width:3},marker:{size:8,color:'#3b82f6'},
+     hovertemplate:'<b>Masculino — PB</b><br>%{x}<br>%{y:.1f}%<extra></extra>'},
+  ],{...L,yaxis:{...L.yaxis,title:{text:'Taxa (%)',font:{size:11}},range:[10,18]},margin:{t:20,b:50,l:55,r:20}},CFG);
+
+  // NE 2024 agrupado
+  const dNE24=dadosUF.filter(x=>estadosNordeste.includes(x.uf)&&x.ano==='2023-2024').sort((a,b)=>a.total-b.total);
+  Plotly.newPlot('chart-genero-estados-ne',[
+    {type:'bar',x:dNE24.map(x=>x.uf),y:dNE24.map(x=>x.fem),name:'Feminino',marker:{color:'#ec4899'},
+     hovertemplate:'<b>Fem · %{x}</b><br>%{y:.1f}%<extra></extra>'},
+    {type:'bar',x:dNE24.map(x=>x.uf),y:dNE24.map(x=>x.masc),name:'Masculino',marker:{color:'#3b82f6'},
+     hovertemplate:'<b>Masc · %{x}</b><br>%{y:.1f}%<extra></extra>'},
+  ],{...L,barmode:'group',
+     yaxis:{...L.yaxis,title:{text:'Taxa (%)',font:{size:11}}},
+     xaxis:{...L.xaxis,tickangle:-30},margin:{t:20,b:100,l:55,r:20}},CFG);
+
+  // Mapa diferença gênero
+  const dM=dadosUF.filter(x=>x.ano==='2023-2024');
+  Plotly.newPlot('chart-genero-mapa',[{
+    type:'choropleth',
+    geojson:'https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson',
+    featureidkey:'properties.sigla',
+    locations:dM.map(x=>ufToCode[x.uf]||''),
+    z:dM.map(x=>+(x.masc-x.fem).toFixed(1)),
+    text:dM.map(x=>`<b>${x.uf}</b><br>Masc:${x.masc}% Fem:${x.fem}%<br>Δ: +${(x.masc-x.fem).toFixed(1)}pp`),
+    hovertemplate:'%{text}<extra></extra>',
+    colorscale:[[0,'#1e3a5f'],[0.5,'#6366f1'],[1,'#ec4899']],
+    zmin:0,zmax:5,
+    colorbar:{title:{text:'Δ M−F',font:{color:'#94a3b8',size:10}},tickfont:{color:'#94a3b8',size:9},
+              bgcolor:'rgba(17,24,39,0.7)',bordercolor:'#1f2f4a',borderwidth:1},
+    marker:{line:{color:'#0a0f1e',width:1}},
+  }],{
+    ...L,
+    geo:{scope:'south america',resolution:50,bgcolor:'rgba(0,0,0,0)',landcolor:'#1a2235',
+         subunitcolor:'#0a0f1e',showcoastlines:false,showframe:false,
+         center:{lat:-15.5,lon:-55},projection:{scale:2.6}},
+    margin:{t:10,b:10,l:0,r:0},
+  },CFG);
+}
+
+function updateGeneroRegiao(){
+  const ano=document.getElementById('genero-year').value;
+  const d=dadosRegiao.filter(x=>x.ano===ano).sort((a,b)=>a.total-b.total);
+  Plotly.newPlot('chart-genero-regiao',[
+    {type:'bar',x:d.map(x=>x.regiao),y:d.map(x=>x.fem),name:'Feminino',marker:{color:'#ec4899'},
+     text:d.map(x=>`${x.fem.toFixed(1)}%`),textposition:'outside',textfont:{color:'#f1f5f9',size:11},
+     hovertemplate:'<b>Fem · %{x}</b><br>%{y:.1f}%<extra></extra>'},
+    {type:'bar',x:d.map(x=>x.regiao),y:d.map(x=>x.masc),name:'Masculino',marker:{color:'#3b82f6'},
+     text:d.map(x=>`${x.masc.toFixed(1)}%`),textposition:'outside',textfont:{color:'#f1f5f9',size:11},
+     hovertemplate:'<b>Masc · %{x}</b><br>%{y:.1f}%<extra></extra>'},
+  ],{...L,barmode:'group',
+     yaxis:{...L.yaxis,title:{text:'Taxa (%)',font:{size:11}},range:[0,24]},
+     margin:{t:20,b:50,l:55,r:20}},CFG);
+}
+
+// ═══════════════════════════════════════
+//  PAGE 4: PPI
+// ═══════════════════════════════════════
+function initPPI(){
+  updatePPI();
+
+  const dPB=dadosUF.filter(x=>x.uf==='Paraíba');
+  Plotly.newPlot('chart-ppi-pb-serie',[
+    {x:dPB.map(x=>x.ano),y:dPB.map(x=>x.ppi),name:'PPI',mode:'lines+markers',
+     line:{color:'#f59e0b',width:3},marker:{size:8,color:'#f59e0b'},
+     hovertemplate:'<b>PPI — PB</b><br>%{x}<br>%{y:.1f}%<extra></extra>'},
+    {x:dPB.map(x=>x.ano),y:dPB.map(x=>x.nppi),name:'Não-PPI',mode:'lines+markers',
+     line:{color:'#94a3b8',width:3,dash:'dot'},marker:{size:8,color:'#94a3b8'},
+     hovertemplate:'<b>nPPI — PB</b><br>%{x}<br>%{y:.1f}%<extra></extra>'},
+  ],{...L,yaxis:{...L.yaxis,title:{text:'Taxa (%)',font:{size:11}}},margin:{t:20,b:50,l:55,r:20}},CFG);
+
+  const d24=dadosUF.filter(x=>x.ano==='2023-2024');
+  const diff=d24.map(x=>({uf:x.uf,d:+(x.ppi-x.nppi).toFixed(1)})).sort((a,b)=>b.d-a.d);
+  Plotly.newPlot('chart-ppi-diff',[{
+    type:'bar',orientation:'h',
+    x:diff.map(x=>x.d),y:diff.map(x=>x.uf),
+    marker:{color:diff.map(x=>x.d>0?'#f59e0b':'#10b981')},
+    text:diff.map(x=>`${x.d>0?'+':''}${x.d.toFixed(1)}pp`),
+    textposition:'outside',textfont:{color:'#f1f5f9',size:9},
+    hovertemplate:'<b>%{y}</b><br>Δ PPI−nPPI: %{x:+.1f}pp<extra></extra>',
+  }],{
+    ...L,
+    xaxis:{...L.xaxis,title:{text:'Δ PPI−Não-PPI (pp)',font:{size:11}},
+           zeroline:true,zerolinecolor:'#334155',zerolinewidth:2},
+    yaxis:{...L.yaxis,gridcolor:'rgba(0,0,0,0)',tickfont:{size:9}},
+    margin:{t:20,b:50,l:130,r:60},
+  },CFG);
+}
+
+function updatePPI(){
+  const ano=document.getElementById('ppi-year').value;
+  const dNE=dadosUF.filter(x=>estadosNordeste.includes(x.uf)&&x.ano===ano).sort((a,b)=>a.total-b.total);
+  Plotly.newPlot('chart-ppi-ne',[
+    {type:'bar',x:dNE.map(x=>x.uf),y:dNE.map(x=>x.ppi),name:'PPI',marker:{color:'#f59e0b'},
+     hovertemplate:'<b>PPI · %{x}</b><br>%{y:.1f}%<extra></extra>'},
+    {type:'bar',x:dNE.map(x=>x.uf),y:dNE.map(x=>x.nppi),name:'Não-PPI',marker:{color:'#475569'},
+     hovertemplate:'<b>nPPI · %{x}</b><br>%{y:.1f}%<extra></extra>'},
+    {type:'scatter',x:dNE.map(x=>x.uf),y:dNE.map(x=>x.total),name:'Total',mode:'markers',
+     marker:{size:10,color:'#ef4444',symbol:'diamond',line:{color:'#0a0f1e',width:1}},
+     hovertemplate:'<b>Total · %{x}</b><br>%{y:.1f}%<extra></extra>'},
+  ],{...L,barmode:'group',
+     yaxis:{...L.yaxis,title:{text:'Taxa (%)',font:{size:11}},range:[0,26]},
+     xaxis:{...L.xaxis,tickangle:-30},margin:{t:20,b:100,l:55,r:20}},CFG);
+}
+
+// ═══════════════════════════════════════
+//  PAGE 5: RIO TINTO
+// ═══════════════════════════════════════
+function initRioTinto(){
+  drawFunil('cc');
+  // TDA e TADA
+  Plotly.newPlot('chart-tda-cursos',[
+    {type:'bar',x:dadosCC.map(x=>String(x.ano)),y:dadosCC.map(x=>x.tda),
+     name:'TDA Acum.—Lic.CC',marker:{color:'#818cf8',opacity:0.85},
+     hovertemplate:'<b>Lic.CC</b><br>Ano:%{x}<br>TDA:<b>%{y:.1f}%</b><extra></extra>'},
+    {type:'bar',x:dadosSI.map(x=>String(x.ano)),y:dadosSI.map(x=>x.tda),
+     name:'TDA Acum.—SI',marker:{color:'#34d399',opacity:0.85},
+     hovertemplate:'<b>SI</b><br>Ano:%{x}<br>TDA:<b>%{y:.1f}%</b><extra></extra>'},
+    {type:'scatter',x:dadosCC.map(x=>String(x.ano)),y:dadosCC.map(x=>x.tada),
+     name:'TADA—Lic.CC',mode:'lines+markers',
+     line:{color:'#c7d2fe',width:2,dash:'dot'},marker:{size:7,color:'#c7d2fe'},
+     hovertemplate:'<b>Lic.CC TADA</b><br>%{x}:%{y:.1f}%<extra></extra>'},
+    {type:'scatter',x:dadosSI.map(x=>String(x.ano)),y:dadosSI.map(x=>x.tada),
+     name:'TADA—SI',mode:'lines+markers',
+     line:{color:'#a7f3d0',width:2,dash:'dot'},marker:{size:7,color:'#a7f3d0'},
+     hovertemplate:'<b>SI TADA</b><br>%{x}:%{y:.1f}%<extra></extra>'},
+  ],{...L,barmode:'group',
+     yaxis:{...L.yaxis,title:{text:'Taxa (%)',font:{size:11}},range:[0,65]},
+     xaxis:{...L.xaxis,title:{text:'Ano de Referência',font:{size:11}}},
+     margin:{t:20,b:50,l:55,r:20}},CFG);
+
+  // Comparativo
+  Plotly.newPlot('chart-rt-vs-contexto',[{
+    type:'bar',
+    x:['Brasil (TI)','Paraíba (TI)','Lic. CC\n(Rio Tinto)','Sist. Info.\n(Rio Tinto)'],
+    y:[32.5,29.2,55.9,48.9],
+    marker:{color:['#3b82f6','#f59e0b','#818cf8','#34d399']},
+    text:['32,5%','29,2%','55,9%','48,9%'],
+    textposition:'outside',textfont:{color:'#f1f5f9',size:12},width:0.55,
+    hovertemplate:'<b>%{x}</b><br>TDA 2024: %{y:.1f}%<extra></extra>',
+  }],{...L,
+     yaxis:{...L.yaxis,title:{text:'TDA Acumulada 2024 (%)',font:{size:11}},range:[0,70]},
+     xaxis:{...L.xaxis,gridcolor:'rgba(0,0,0,0)'},
+     margin:{t:20,b:60,l:55,r:20}},CFG);
+
+  // Pizza distribuição 2024
+  Plotly.newPlot('chart-dist-2024',[
+    {type:'pie',labels:['Permanência','Concluintes','Desistências'],values:[39,2,52],
+     name:'Lic.CC',domain:{x:[0,0.47]},hole:0.45,
+     marker:{colors:['#818cf8','#10b981','#ef4444']},
+     textinfo:'label+percent',textfont:{color:'#f1f5f9',size:10},
+     hovertemplate:'<b>Lic.CC·%{label}</b><br>%{value}(%{percent})<extra></extra>',
+     title:{text:'<b>Lic. CC</b>',font:{color:'#94a3b8',size:11}}},
+    {type:'pie',labels:['Permanência','Concluintes','Desistências'],values:[15,8,24],
+     name:'Sist.Info',domain:{x:[0.53,1]},hole:0.45,
+     marker:{colors:['#34d399','#10b981','#ef4444']},
+     textinfo:'label+percent',textfont:{color:'#f1f5f9',size:10},
+     hovertemplate:'<b>SI·%{label}</b><br>%{value}(%{percent})<extra></extra>',
+     title:{text:'<b>Sist. Info.</b>',font:{color:'#94a3b8',size:11}}},
+  ],{...L,showlegend:true,
+     legend:{...L.legend,x:0.5,y:-0.15,xanchor:'center',orientation:'h'},
+     margin:{t:30,b:60,l:20,r:20}},CFG);
+}
+
+function switchFunnel(mode,el){
+  document.querySelectorAll('.year-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  drawFunil(mode);
+}
+
+function drawFunil(mode){
+  if(mode==='both'){
+    Plotly.newPlot('chart-funil',[
+      {type:'bar',x:dadosCC.map(x=>String(x.ano)),y:dadosCC.map(x=>x.perm),
+       name:'Lic.CC—Permanência',marker:{color:'#818cf8'},
+       hovertemplate:'<b>Lic.CC</b><br>Ano:%{x}<br>Ativos:<b>%{y}</b><extra></extra>'},
+      {type:'bar',x:dadosSI.map(x=>String(x.ano)),y:dadosSI.map(x=>x.perm),
+       name:'SI—Permanência',marker:{color:'#34d399'},
+       hovertemplate:'<b>SI</b><br>Ano:%{x}<br>Ativos:<b>%{y}</b><extra></extra>'},
+    ],{...L,barmode:'group',
+       yaxis:{...L.yaxis,title:{text:'Alunos em Permanência',font:{size:11}}},
+       xaxis:{...L.xaxis,title:{text:'Ano de Referência',font:{size:11}}},
+       shapes:[
+         {type:'line',x0:-0.5,x1:4.5,y0:93,y1:93,line:{color:'#818cf8',width:1.5,dash:'dot'}},
+         {type:'line',x0:-0.5,x1:4.5,y0:47,y1:47,line:{color:'#34d399',width:1.5,dash:'dot'}},
+       ],
+       annotations:[
+         {x:4.4,y:93,text:'<b>93 ingressantes CC</b>',showarrow:false,font:{color:'#818cf8',size:10},xref:'x',yref:'y'},
+         {x:4.4,y:47,text:'<b>47 ingressantes SI</b>',showarrow:false,font:{color:'#34d399',size:10},xref:'x',yref:'y'},
+       ],
+       margin:{t:20,b:50,l:55,r:20}},CFG);
+    return;
+  }
+  const dados=mode==='cc'?dadosCC:dadosSI;
+  const cor=mode==='cc'?'#818cf8':'#34d399';
+  const nome=mode==='cc'?'Lic. Ciência da Computação':'Sistemas de Informação';
+  const ing=dados[0].ing;
+  Plotly.newPlot('chart-funil',[{
+    type:'funnel',
+    y:dados.map(x=>String(x.ano)),
+    x:dados.map(x=>x.perm),
+    text:dados.map(x=>`${x.perm} (${((x.perm/ing)*100).toFixed(1)}%)`),
+    textinfo:'text',
+    textfont:{color:'#f1f5f9',size:12},
+    hovertemplate:`<b>${nome} (%{y})</b><br>Alunos em Permanência: <b>%{x}</b> de ${ing}<br>Retenção da Coorte: <b>%{text}</b><extra></extra>`,
+    marker:{color:dados.map((_,i)=>`hsl(${mode==='cc'?239:158},${85-i*5}%,${55-i*4}%)`),
+            line:{color:'#0a0f1e',width:1}},
+    connector:{fillcolor:'rgba(0,0,0,0)',line:{color:'#334155',width:1}},
+  }],{
+    ...L,
+    yaxis:{...L.yaxis,autorange:'reversed',title:{text:'Ano de Referência',font:{size:11}}},
+    xaxis:{...L.xaxis,title:{text:'Alunos em Permanência',font:{size:11}}},
+    title:{text:`Funil de Retenção — ${nome} (Coorte 2020, Ingressantes: ${ing})`,
+           font:{color:'#94a3b8',size:12}},
+    margin:{t:50,b:40,l:80,r:20},
+  },CFG);
+}
+
+// ═══════════════════════════════════════
+//  PAGE 6: TABELA
+// ═══════════════════════════════════════
+function initTabela(){filterTable();}
+
+function filterTable(){
+  const region=document.getElementById('table-region').value;
+  const year=document.getElementById('table-year').value;
+  const sort=document.getElementById('table-sort').value;
+  const search=(document.getElementById('table-search').value||'').toLowerCase();
+
+  let data=[...dadosUF];
+  if(region==='ne')     data=data.filter(x=>estadosNordeste.includes(x.uf));
+  if(region==='outros') data=data.filter(x=>!estadosNordeste.includes(x.uf));
+  if(year!=='all')      data=data.filter(x=>x.ano===year);
+  if(search)            data=data.filter(x=>x.uf.toLowerCase().includes(search));
+
+  const [sf,sd]=sort.split('-');
+  data.sort((a,b)=>{
+    if(sf==='uf')  return sd==='asc'?a.uf.localeCompare(b.uf):b.uf.localeCompare(a.uf);
+    if(sf==='ano') return sd==='asc'?a.ano.localeCompare(b.ano):b.ano.localeCompare(a.ano);
+    const map={total:'total',fem:'fem',masc:'masc',ppi:'ppi',nppi:'nppi'};
+    return sd==='asc'?a[map[sf]||'total']-b[map[sf]||'total']:b[map[sf]||'total']-a[map[sf]||'total'];
+  });
+
+  document.getElementById('table-body').innerHTML=data.map(row=>{
+    const isNE=estadosNordeste.includes(row.uf),isPB=row.uf==='Paraíba';
+    const lv=row.total>=19?['tag-high','Alta']:row.total>=15?['tag-med','Média']:['tag-low','Baixa'];
+    return `<tr>
+      <td style="font-weight:${isPB?'700':'400'};color:${isPB?'#f59e0b':'#f1f5f9'}">${row.uf}${isPB?' ⭐':''}</td>
+      <td>${row.ano}</td>
+      <td class="${isPB?'td-highlight':''}">${row.total.toFixed(1)}%</td>
+      <td>${row.fem.toFixed(1)}%</td><td>${row.masc.toFixed(1)}%</td>
+      <td>${row.ppi.toFixed(1)}%</td><td>${row.nppi.toFixed(1)}%</td>
+      <td><span class="td-tag ${lv[0]}">${lv[1]}</span>${isNE?'<span class="td-tag badge-amber" style="margin-left:3px;background:rgba(245,158,11,.18);color:#fcd34d;border:1px solid rgba(245,158,11,.3)">NE</span>':''}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('table-count').textContent=`Mostrando ${data.length} de ${dadosUF.length} registros`;
+}
+
+function sortTable(f){
+  const s=document.getElementById('table-sort');
+  s.value=s.value.startsWith(f)?(s.value.endsWith('asc')?f+'-desc':f+'-asc'):f+'-desc';
+  filterTable();
+}
+
+// INIT
+window.addEventListener('DOMContentLoaded',()=>{
+  init['nacional']=true;
+  setTimeout(initNacional,100);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+# ==============================================================================
+# .gitignore — Projeto TCC (Evasão em TI - UFPB Rio Tinto)
+# ==============================================================================
+
+# Arquivos de microdados brutos que excedem o limite de 100MB do GitHub (431MB+)
+microdados_censo_da_educacao_superior_2024/
+
+# Scripts e arquivos temporários de teste/rascunho
+scratch/
+
+# Python / Ambientes Virtuais e Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# Arquivos de configuração de IDEs e editores locais
+.vscode/
+.idea/
+
+# Arquivos de sistema operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs temporários
+*.log
