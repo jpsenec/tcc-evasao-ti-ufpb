@@ -1,0 +1,128 @@
+"""Data ingestion module for INEP census and trajectory datasets."""
+
+from pathlib import Path
+import pandas as pd
+import streamlit as st
+
+from src.config import (
+    REGION_DATA_FILE,
+    STATE_DATA_FILE,
+    TRAJECTORY_DATA_FILE,
+    FOCUS_COHORT_YEAR,
+)
+
+
+def _validate_file_exists(file_path: Path) -> None:
+    """Raises FileNotFoundError with context if dataset file is missing."""
+    if not file_path.is_file():
+        raise FileNotFoundError(
+            f"Arquivo de dados não encontrado: '{file_path}'. "
+            "Certifique-se de que a base foi baixada na pasta dados/brutos/."
+        )
+
+
+@st.cache_data(show_spinner=False)
+def load_regional_data() -> pd.DataFrame:
+    """Loads and standardizes annual evasion indicators by geographic region."""
+    _validate_file_exists(REGION_DATA_FILE)
+
+    raw_excel = pd.ExcelFile(REGION_DATA_FILE)
+    df = (
+        raw_excel.parse("TX_EVASAO", header=None, skiprows=8)
+        .iloc[:, :5]
+        .set_axis(["ANO_FLUXO", "REGIAO", "TOTAL", "FEMININO", "MASCULINO"], axis=1)
+        .dropna(subset=["REGIAO"])
+    )
+
+    # Filter out footer notes and clean strings
+    is_valid_row = ~df["REGIAO"].astype(str).str.startswith(("Fonte", "Nota"))
+    df = df.loc[is_valid_row].copy()
+    df["ANO_FLUXO"] = df["ANO_FLUXO"].ffill().astype(str).str.strip()
+    df["REGIAO"] = df["REGIAO"].astype(str).str.strip()
+
+    # Convert metrics to numeric
+    numeric_cols = ["TOTAL", "FEMININO", "MASCULINO"]
+    df[numeric_cols] = df[numeric_cols].apply(pd.to_numeric, errors="coerce")
+
+    return df.dropna(subset=["TOTAL"])
+
+
+@st.cache_data(show_spinner=False)
+def load_state_data() -> pd.DataFrame:
+    """Loads and standardizes annual evasion indicators by Brazilian federative unit."""
+    _validate_file_exists(STATE_DATA_FILE)
+
+    raw_excel = pd.ExcelFile(STATE_DATA_FILE)
+    df = (
+        raw_excel.parse("TX_EVASAO", header=None, skiprows=8)
+        .iloc[:, :7]
+        .set_axis(
+            ["ANO_FLUXO", "UF", "TOTAL", "FEMININO", "MASCULINO", "PPI_SIM", "PPI_NAO"],
+            axis=1,
+        )
+        .dropna(subset=["UF"])
+    )
+
+    is_valid_row = ~df["UF"].astype(str).str.startswith(("Fonte", "Nota"))
+    df = df.loc[is_valid_row].copy()
+    df["ANO_FLUXO"] = df["ANO_FLUXO"].ffill().astype(str).str.strip()
+    df["UF"] = df["UF"].astype(str).str.strip()
+
+    numeric_cols = ["TOTAL", "FEMININO", "MASCULINO", "PPI_SIM", "PPI_NAO"]
+    df[numeric_cols] = df[numeric_cols].apply(pd.to_numeric, errors="coerce")
+
+    return df.dropna(subset=["TOTAL"])
+
+
+@st.cache_data(show_spinner=False)
+def load_trajectory_data() -> pd.DataFrame:
+    """Loads, filters and formats trajectory cohort microdata."""
+    _validate_file_exists(TRAJECTORY_DATA_FILE)
+
+    columns = [
+        "CO_IES", "NO_IES", "TP_CATEGORIA_ADMINISTRATIVA", "TP_ORGANIZACAO_ACADEMICA",
+        "CO_CURSO", "NO_CURSO", "CO_REGIAO", "CO_UF", "CO_MUNICIPIO",
+        "TP_GRAU_ACADEMICO", "TP_MODALIDADE_ENSINO",
+        "CO_CINE_ROTULO", "NO_CINE_ROTULO", "CO_CINE_AREA_GERAL", "NO_CINE_AREA_GERAL",
+        "NU_ANO_INGRESSO", "NU_ANO_REFERENCIA", "NU_PRAZO_INTEGRALIZACAO",
+        "NU_ANO_INTEGRALIZACAO", "NU_PRAZO_ACOMPANHAMENTO", "NU_ANO_MAXIMO_ACOMPANHAMENTO",
+        "QT_INGRESSANTE", "QT_PERMANENCIA", "QT_CONCLUINTE", "QT_DESISTENCIA", "QT_FALECIDO",
+        "TAP", "TCA", "TDA", "TCAN", "TADA"
+    ]
+
+    df = pd.read_csv(
+        TRAJECTORY_DATA_FILE,
+        sep=";",
+        encoding="latin1",
+        header=None,
+        skiprows=9,
+        engine="python",
+        names=columns,
+        on_bad_lines="skip"
+    )
+
+    # Numeric conversion for primary keys and dimensions
+    int_cols = [
+        "CO_IES", "CO_UF", "CO_MUNICIPIO", "CO_CURSO",
+        "TP_GRAU_ACADEMICO", "NU_ANO_REFERENCIA", "QT_INGRESSANTE",
+        "NU_ANO_INGRESSO", "CO_CINE_AREA_GERAL"
+    ]
+    df[int_cols] = df[int_cols].apply(pd.to_numeric, errors="coerce")
+
+    # Clean percentage rates with comma decimals
+    rate_cols = ["TAP", "TCA", "TDA", "TCAN", "TADA"]
+    for col in rate_cols:
+        df[col] = pd.to_numeric(
+            df[col].astype(str).str.replace(",", ".").str.strip(),
+            errors="coerce"
+        )
+
+    # Retain strictly valid cohort records
+    clean_df = (
+        df.dropna(subset=["CO_IES", "CO_UF"])
+        .query(f"CO_IES > 0 and NU_ANO_INGRESSO == {FOCUS_COHORT_YEAR}")
+        .copy()
+    )
+
+    return clean_df
+

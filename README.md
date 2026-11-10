@@ -58,10 +58,27 @@ tcc-evasao-ti-ufpb/
 │
 ├── index.html                      # Dashboard Web Interativo (pronto para GitHub Pages)
 ├── dashboard_interativo.html       # Cópia standalone do Dashboard Web
-├── dashboard.py                    # Aplicação Web Streamlit
+├── dashboard.py                    # Entrypoint da Aplicação Web Streamlit
 ├── requirements.txt                # Dependências Python do ecossistema
 ├── README.md                       # Documentação técnica do repositório
 ├── .gitignore                      # Regras de exclusão de arquivos (>100MB e temporários)
+│
+├── src/                            # Arquitetura modularizada da aplicação Streamlit
+│   ├── config.py                   # Configurações globais, paths e tokens visuais
+│   ├── data/                       # Ingestão em cache e transformações puras vetorizadas
+│   │   ├── loader.py
+│   │   └── transformers.py
+│   ├── ui/                         # Design system, CSS customizado e builders do Plotly
+│   │   ├── styles.py
+│   │   ├── components.py
+│   │   └── charts.py
+│   └── views/                      # Visões isoladas do dashboard (Nacional, PB e Rio Tinto)
+│       ├── national.py
+│       ├── regional.py
+│       └── local.py
+│
+├── tests/                          # Suíte de testes unitários automatizados
+│   └── test_transformers.py        # Testes das transformações e métricas analíticas
 │
 ├── scripts/                        # Pipelines de código Python
 │   ├── analise_tcc.py              # Pipeline de ETL, tratamento e geração de gráficos
@@ -116,7 +133,15 @@ Executa a limpeza, as agregações e exporta os 8 gráficos interativos em forma
 python scripts/analise_tcc.py
 ```
 
-### 4. Abrir os Dashboards
+### 4. Executar os Testes Unitários
+Valida as funções de transformação analítica, cálculos ponderados e filtros censitários:
+```bash
+pytest tests/test_transformers.py
+# ou usando o runner nativo do Python:
+python -m unittest tests/test_transformers.py
+```
+
+### 5. Abrir os Dashboards
 *   **Dashboard Web Standalone:** Dê dois cliques em `index.html` (ou abra no navegador). Funciona instantaneamente sem necessidade de rodar nenhum comando de terminal.
 *   **Dashboard Streamlit:**
     ```bash
