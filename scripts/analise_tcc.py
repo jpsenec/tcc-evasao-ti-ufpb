@@ -272,39 +272,132 @@ def grafico1_serie_temporal_regioes(df_reg: pd.DataFrame, pasta: str):
 
 def grafico2_ranking_regioes_2024(df_reg: pd.DataFrame, pasta: str):
     """
-    Gráfico 2 — Ranking de Regiões por Evasão em 2023-2024
-    Barras horizontais com destaque para o Nordeste.
+    Gráfico 2 — Ranking de Regiões por Retenção e Evasão
+    Com botões interativos para alternar entre 2023-2024, Média do Ciclo (2020-2024)
+    e Coorte 2020 (TDA Acumulada em TI).
     """
-    print("  [→] Gerando Gráfico 2: Ranking de regiões em 2023-2024...")
-    df = df_reg[df_reg["ANO_FLUXO"] == "2023-2024"].copy()
-    df = df.sort_values("TOTAL", ascending=True)
+    print("  [→] Gerando Gráfico 2: Ranking de regiões (interativo multi-visão)...")
 
-    cores = [CORES_REGIOES.get(r, COR_OUTROS) for r in df["REGIAO"]]
+    # 1. Dados 2023-2024
+    d24 = df_reg[df_reg["ANO_FLUXO"] == "2023-2024"].copy().sort_values("TOTAL", ascending=True)
+    cores_24 = [CORES_REGIOES.get(r, COR_OUTROS) for r in d24["REGIAO"]]
+    med_24 = d24["TOTAL"].mean()
 
-    fig = go.Figure(go.Bar(
-        x=df["TOTAL"],
-        y=df["REGIAO"],
+    # 2. Dados Média Ciclo 2020-2024
+    df_ciclo = df_reg[df_reg["ANO_FLUXO"].isin(ANOS_FOCO)].copy()
+    d_ciclo = df_ciclo.groupby("REGIAO", as_index=False)["TOTAL"].mean().sort_values("TOTAL", ascending=True)
+    cores_ciclo = [CORES_REGIOES.get(r, COR_OUTROS) for r in d_ciclo["REGIAO"]]
+    med_ciclo = d_ciclo["TOTAL"].mean()
+
+    # 3. Dados Coorte 2020 TDA Acumulada em TI (após 5 anos)
+    d_coorte = pd.DataFrame([
+        {"REGIAO": "Nordeste", "TOTAL": 53.4},
+        {"REGIAO": "Centro-Oeste", "TOTAL": 53.5},
+        {"REGIAO": "Norte", "TOTAL": 54.1},
+        {"REGIAO": "Sul", "TOTAL": 56.9},
+        {"REGIAO": "Sudeste", "TOTAL": 57.4},
+    ]).sort_values("TOTAL", ascending=True)
+    cores_coorte = [CORES_REGIOES.get(r, COR_OUTROS) for r in d_coorte["REGIAO"]]
+    med_coorte = 55.1
+
+    fig = go.Figure()
+
+    # Trace 0: 2023-2024
+    fig.add_trace(go.Bar(
+        x=d24["TOTAL"],
+        y=d24["REGIAO"],
         orientation="h",
-        marker_color=cores,
-        text=[f"<b>{v:.1f}%</b>" for v in df["TOTAL"]],
+        marker_color=cores_24,
+        text=[f"<b>{v:.1f}%</b>" for v in d24["TOTAL"]],
         textposition="outside",
-        textfont=dict(color="#0f172a", size=20),
-        hovertemplate="<b>%{y}</b><br>Taxa de Evasão: %{x:.1f}%<extra></extra>"
+        textfont=dict(color="#0f172a", size=18),
+        hovertemplate="<b>%{y}</b><br>Evasão 2023-2024: %{x:.1f}%<extra></extra>",
+        name="2023–2024",
+        visible=True,
     ))
 
-    # Linha de média nacional
-    media_nacional = df["TOTAL"].mean()
-    fig.add_vline(x=media_nacional, line_dash="dash", line_color="#ef4444", line_width=3,
-                  annotation_text=f"<b>Média: {media_nacional:.1f}%</b>",
-                  annotation_font_color="#ef4444", annotation_font_size=20, annotation_position="top right")
+    # Trace 1: Média Ciclo
+    fig.add_trace(go.Bar(
+        x=d_ciclo["TOTAL"],
+        y=d_ciclo["REGIAO"],
+        orientation="h",
+        marker_color=cores_ciclo,
+        text=[f"<b>{v:.1f}%</b>" for v in d_ciclo["TOTAL"]],
+        textposition="outside",
+        textfont=dict(color="#0f172a", size=18),
+        hovertemplate="<b>%{y}</b><br>Média Ciclo: %{x:.1f}%<extra></extra>",
+        name="Média Ciclo (2020–2024)",
+        visible=False,
+    ))
+
+    # Trace 2: Coorte 2020 TDA
+    fig.add_trace(go.Bar(
+        x=d_coorte["TOTAL"],
+        y=d_coorte["REGIAO"],
+        orientation="h",
+        marker_color=cores_coorte,
+        text=[f"<b>{v:.1f}%</b>" for v in d_coorte["TOTAL"]],
+        textposition="outside",
+        textfont=dict(color="#0f172a", size=18),
+        hovertemplate="<b>%{y}</b><br>TDA Coorte TI (5 Anos): %{x:.1f}%<extra></extra>",
+        name="Coorte 2020 (TDA TI)",
+        visible=False,
+    ))
 
     fig.update_layout(
         **LAYOUT_BASE,
-        title="🏆 Ranking de Regiões por Taxa de Evasão — Período 2023–2024",
-        xaxis_title="<b>Taxa de Evasão (%)</b>",
+        title="🏆 Ranking de Regiões por Retenção e Evasão",
+        xaxis_title="<b>Taxa (%)</b>",
         yaxis_title="",
-        xaxis=dict(gridcolor="#e2e8f0", range=[0, df["TOTAL"].max() * 1.25], title_font_size=22, tickfont_size=20),
-        yaxis=dict(gridcolor="rgba(0,0,0,0)", tickfont_size=20),
+        xaxis=dict(gridcolor="#e2e8f0", range=[0, 24], title_font_size=20, tickfont_size=18),
+        yaxis=dict(gridcolor="rgba(0,0,0,0)", tickfont_size=18),
+        updatemenus=[
+            dict(
+                type="buttons",
+                direction="right",
+                x=0.5, y=1.18,
+                xanchor="center",
+                yanchor="top",
+                bgcolor="#f8fafc",
+                bordercolor="#cbd5e1",
+                font=dict(size=14, color="#0f172a"),
+                buttons=[
+                    dict(
+                        label="📌 2023–2024",
+                        method="update",
+                        args=[
+                            {"visible": [True, False, False]},
+                            {
+                                "title": "🏆 Ranking de Regiões — Período 2023–2024 (Fluxo Anual)",
+                                "xaxis": dict(range=[0, 24], gridcolor="#e2e8f0", title_font_size=20, tickfont_size=18),
+                            }
+                        ]
+                    ),
+                    dict(
+                        label="📊 Média Ciclo (2020–2024)",
+                        method="update",
+                        args=[
+                            {"visible": [False, True, False]},
+                            {
+                                "title": "🏆 Ranking por Média do Ciclo Transversal (2020–2024)",
+                                "xaxis": dict(range=[0, 24], gridcolor="#e2e8f0", title_font_size=20, tickfont_size=18),
+                            }
+                        ]
+                    ),
+                    dict(
+                        label="🎓 Coorte 2020 (TDA TI 5 Anos)",
+                        method="update",
+                        args=[
+                            {"visible": [False, False, True]},
+                            {
+                                "title": "🎓 Ranking por TDA da Coorte 2020 (TI — Desistência Acumulada em 5 Anos)",
+                                "xaxis": dict(range=[0, 72], gridcolor="#e2e8f0", title_font_size=20, tickfont_size=18),
+                            }
+                        ]
+                    ),
+                ]
+            )
+        ]
     )
 
     fig.write_html(os.path.join(pasta, "grafico2_ranking_regioes_2024.html"))

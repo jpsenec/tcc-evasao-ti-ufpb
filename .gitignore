@@ -2,7 +2,11 @@
 # .gitignore — Projeto TCC (Evasão em TI - UFPB Rio Tinto)
 # ==============================================================================
 
-# Arquivos de microdados brutos que excedem o limite de 100MB do GitHub (431MB+)
+# Arquivos de microdados brutos do INEP (100MB–432MB por ano — não versionar)
+microdados_censo_2020/
+microdados_censo_2021/
+microdados_censo_2022/
+microdados_censo_da_educacao_superior_2023/
 microdados_censo_da_educacao_superior_2024/
 
 # Scripts e arquivos temporários de teste/rascunho

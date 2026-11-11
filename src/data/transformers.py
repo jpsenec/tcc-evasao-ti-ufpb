@@ -9,6 +9,8 @@ from src.config import (
     CODE_MUNICIPALITY_RIO_TINTO,
     CODE_COURSE_LIC_CC,
     CODE_COURSE_SI,
+    FOCUS_YEARS,
+    REGION_CODE_MAP,
 )
 
 
@@ -137,4 +139,48 @@ def compute_degree_comparison(
     return compute_weighted_tda(pb_it_courses, group_col="GRAU").rename(
         columns={"ANO": "GRAU"}
     )
+
+
+def compute_regional_cycle_ranking(df_regional: pd.DataFrame) -> pd.DataFrame:
+    """Computes average transversal dropout rate across all cycle periods (2020-2024)."""
+    df_cycle = df_regional.loc[df_regional["ANO_FLUXO"].isin(FOCUS_YEARS)]
+    if df_cycle.empty:
+        return pd.DataFrame(columns=["REGIAO", "TOTAL"])
+
+    ranking = (
+        df_cycle.groupby("REGIAO", as_index=False)["TOTAL"]
+        .mean()
+        .sort_values("TOTAL", ascending=True)
+    )
+    return ranking.reset_index(drop=True)
+
+
+def compute_regional_cohort_tda(
+    df_trajectory: pd.DataFrame,
+    target_year: int = 2024,
+) -> pd.DataFrame:
+    """Computes weighted accumulated dropout rate (TDA) for 2020 cohort in IT courses by region."""
+    ti_courses = filter_technology_courses(df_trajectory)
+    ti_target = ti_courses.loc[ti_courses["NU_ANO_REFERENCIA"] == target_year].copy()
+
+    if ti_target.empty:
+        return pd.DataFrame(columns=["REGIAO", "TOTAL"])
+
+    ti_target["REGIAO"] = ti_target["CO_REGIAO"].map(REGION_CODE_MAP)
+    ti_target = ti_target.dropna(subset=["REGIAO"]).copy()
+
+    ti_target["WEIGHTED_DROPOUT"] = ti_target["TDA"] * ti_target["QT_INGRESSANTE"]
+    aggregated = (
+        ti_target.groupby("REGIAO", as_index=False)[["WEIGHTED_DROPOUT", "QT_INGRESSANTE"]]
+        .sum()
+    )
+
+    aggregated["TOTAL"] = np.where(
+        aggregated["QT_INGRESSANTE"] > 0,
+        aggregated["WEIGHTED_DROPOUT"] / aggregated["QT_INGRESSANTE"],
+        0.0,
+    )
+
+    return aggregated.sort_values("TOTAL", ascending=True)[["REGIAO", "TOTAL"]].reset_index(drop=True)
+
 

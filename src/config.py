@@ -13,6 +13,7 @@ PROCESSED_DATA_DIR: Path = PROJECT_ROOT / "dados" / "processados"
 REGION_DATA_FILE: Path = RAW_DATA_DIR / "regiao" / "INDIC_REGIAO_2010_2024.xlsx"
 STATE_DATA_FILE: Path = RAW_DATA_DIR / "uf" / "INDIC_UF_2010_2024.xlsx"
 TRAJECTORY_DATA_FILE: Path = RAW_DATA_DIR / "INDICADORES_TRAJETORIA.csv"
+CENSUS_PROFILE_FILE: Path = PROCESSED_DATA_DIR / "perfil_censal_riotinto_2020_2024.csv"
 
 # ==============================================================================
 # BUSINESS CONSTANTS & CODES
@@ -31,6 +32,14 @@ NORTHEAST_STATES: List[str] = [
 ]
 
 BRAZIL_REGIONS: List[str] = ["Norte", "Nordeste", "Centro-Oeste", "Sudeste", "Sul"]
+
+REGION_CODE_MAP: Dict[int, str] = {
+    1: "Norte",
+    2: "Nordeste",
+    3: "Sudeste",
+    4: "Sul",
+    5: "Centro-Oeste",
+}
 
 # ==============================================================================
 # DESIGN SYSTEM & COLOR PALETTES

@@ -11,6 +11,8 @@ from src.data.transformers import (
     compute_weighted_tda,
     filter_technology_courses,
     get_course_kpis,
+    compute_regional_cycle_ranking,
+    compute_regional_cohort_tda,
 )
 
 
@@ -95,6 +97,43 @@ class TestTransformers(unittest.TestCase):
         self.assertEqual(kpis["ingressantes"], 40)
         self.assertEqual(kpis["tda"], 57.5)
         self.assertEqual(kpis["permanencia"], 17)
+
+    def test_compute_regional_cycle_ranking(self):
+        """Validates calculation of average transversal rate across all cycle periods."""
+        data = {
+            "REGIAO": ["Nordeste", "Nordeste", "Sul", "Sul"],
+            "ANO_FLUXO": ["2020-2021", "2021-2022", "2020-2021", "2021-2022"],
+            "TOTAL": [14.0, 16.0, 18.0, 20.0],
+        }
+        df_reg = pd.DataFrame(data)
+        result = compute_regional_cycle_ranking(df_reg)
+
+        self.assertEqual(len(result), 2)
+        # Nordeste mean = 15.0 (rank 1), Sul mean = 19.0 (rank 2)
+        self.assertEqual(result.iloc[0]["REGIAO"], "Nordeste")
+        np.testing.assert_almost_equal(result.iloc[0]["TOTAL"], 15.0)
+        self.assertEqual(result.iloc[1]["REGIAO"], "Sul")
+        np.testing.assert_almost_equal(result.iloc[1]["TOTAL"], 19.0)
+
+    def test_compute_regional_cohort_tda(self):
+        """Validates weighted calculation of cohort TDA grouped by macro-region."""
+        data = {
+            "CO_CINE_AREA_GERAL": [6, 6],
+            "CO_CINE_ROTULO": ["0613C01", "0613C01"],
+            "TP_GRAU_ACADEMICO": [1, 1],
+            "NU_ANO_REFERENCIA": [2024, 2024],
+            "CO_REGIAO": [2, 3],  # 2 = Nordeste, 3 = Sudeste
+            "TDA": [50.0, 60.0],
+            "QT_INGRESSANTE": [100, 200],
+        }
+        df_traj = pd.DataFrame(data)
+        result = compute_regional_cohort_tda(df_traj, target_year=2024)
+
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result.iloc[0]["REGIAO"], "Nordeste")
+        np.testing.assert_almost_equal(result.iloc[0]["TOTAL"], 50.0)
+        self.assertEqual(result.iloc[1]["REGIAO"], "Sudeste")
+        np.testing.assert_almost_equal(result.iloc[1]["TOTAL"], 60.0)
 
 
 if __name__ == "__main__":

@@ -324,8 +324,16 @@
       <div class="chart-card" style="margin-bottom:0;">
         <div class="chart-header">
           <div>
-            <div class="chart-title">🏆 Ranking de Regiões — 2023-2024</div>
-            <div class="chart-subtitle">Comparativo com a média nacional</div>
+            <div class="chart-title" id="ranking-regiao-title">🏆 Ranking de Regiões — 2023-2024</div>
+            <div class="chart-subtitle" id="ranking-regiao-subtitle">Comparativo com a média das regiões</div>
+          </div>
+          <div class="ctrl-group">
+            <label class="ctrl-label" for="ranking-mode-select">Métrica:</label>
+            <select class="ctrl-select" id="ranking-mode-select" onchange="updateRegionalRanking()">
+              <option value="2023-2024" selected>2023–2024 (Último Período)</option>
+              <option value="media-ciclo">Média do Ciclo (2020–2024)</option>
+              <option value="coorte-tda">Coorte 2020 (TDA Acumulada TI)</option>
+            </select>
           </div>
         </div>
         <div id="chart-ranking-regiao" style="height:320px;"></div>
@@ -882,25 +890,93 @@ function initNacional(){
     {...L,yaxis:{...L.yaxis,title:{text:'Taxa de Evasão (%)',font:{size:11}},range:[10,22]}},CFG);
 
   // Ranking
-  const d24=dadosRegiao.filter(x=>x.ano==='2023-2024').sort((a,b)=>a.total-b.total);
-  const med=d24.reduce((s,x)=>s+x.total,0)/d24.length;
-  Plotly.newPlot('chart-ranking-regiao',[{
-    type:'bar',orientation:'h',
-    x:d24.map(x=>x.total),y:d24.map(x=>x.regiao),
-    marker:{color:d24.map(x=>CR[x.regiao]||'#475569')},
-    text:d24.map(x=>`<b>${x.total.toFixed(1)}%</b>`),
-    textposition:'outside',textfont:{color:'#f1f5f9',size:12},
-    hovertemplate:'<b>%{y}</b><br>%{x:.1f}%<extra></extra>'
-  }],{
-    ...L,
-    shapes:[{type:'line',x0:med,x1:med,y0:-0.5,y1:d24.length-0.5,line:{color:'#ef4444',width:2,dash:'dash'}}],
-    annotations:[{x:med,y:d24.length-0.7,text:`<b>Média: ${med.toFixed(1)}%</b>`,showarrow:false,font:{color:'#ef4444',size:11},xref:'x',yref:'y'}],
-    xaxis:{...L.xaxis,range:[0,23]},
-    yaxis:{...L.yaxis,gridcolor:'rgba(0,0,0,0)'},
-    margin:{t:20,b:50,l:100,r:30},
-  },CFG);
+  updateRegionalRanking();
 
   drawMap('2023-2024');
+}
+
+function updateRegionalRanking() {
+  const mode = document.getElementById('ranking-mode-select')?.value || '2023-2024';
+  const titleEl = document.getElementById('ranking-regiao-title');
+  const subtitleEl = document.getElementById('ranking-regiao-subtitle');
+
+  let list = [];
+  let title = '';
+  let subtitle = '';
+  let maxRange = 23;
+  let metricLabel = 'Evasão';
+
+  if (mode === '2023-2024') {
+    list = dadosRegiao.filter(x => x.ano === '2023-2024').map(x => ({ regiao: x.regiao, val: x.total }));
+    title = '🏆 Ranking de Regiões — 2023–2024';
+    subtitle = 'Taxa de evasão transversal do último período letivo';
+    maxRange = 23;
+    metricLabel = 'Evasão';
+  } else if (mode === 'media-ciclo') {
+    const regioes = ['Nordeste', 'Sudeste', 'Sul', 'Centro-Oeste', 'Norte'];
+    list = regioes.map(r => {
+      const vals = dadosRegiao.filter(x => x.regiao === r).map(x => x.total);
+      const avg = vals.reduce((s, v) => s + v, 0) / vals.length;
+      return { regiao: r, val: avg };
+    });
+    title = '🏆 Ranking por Média do Ciclo (2020–2024)';
+    subtitle = 'Média das taxas transversais ao longo dos 4 anos letivos';
+    maxRange = 23;
+    metricLabel = 'Média Ciclo';
+  } else {
+    // Coorte 2020 TDA Acumulada em TI
+    list = [
+      { regiao: 'Nordeste', val: 53.4 },
+      { regiao: 'Centro-Oeste', val: 53.5 },
+      { regiao: 'Norte', val: 54.1 },
+      { regiao: 'Sul', val: 56.9 },
+      { regiao: 'Sudeste', val: 57.4 },
+    ];
+    title = '🎓 Ranking por TDA da Coorte 2020 (Cursos de TI)';
+    subtitle = 'Desistência acumulada da coorte após 5 anos de acompanhamento';
+    maxRange = 70;
+    metricLabel = 'TDA 5 Anos';
+  }
+
+  list.sort((a, b) => a.val - b.val);
+  const med = list.reduce((s, x) => s + x.val, 0) / list.length;
+
+  if (titleEl) titleEl.textContent = title;
+  if (subtitleEl) subtitleEl.textContent = subtitle;
+
+  Plotly.newPlot('chart-ranking-regiao', [{
+    type: 'bar',
+    orientation: 'h',
+    x: list.map(x => x.val),
+    y: list.map(x => x.regiao),
+    marker: { color: list.map(x => CR[x.regiao] || '#475569') },
+    text: list.map(x => `<b>${x.val.toFixed(1)}%</b>`),
+    textposition: 'outside',
+    textfont: { color: '#f1f5f9', size: 12 },
+    hovertemplate: `<b>%{y}</b><br>${metricLabel}: %{x:.1f}%<extra></extra>`
+  }], {
+    ...L,
+    shapes: [{
+      type: 'line',
+      x0: med,
+      x1: med,
+      y0: -0.5,
+      y1: list.length - 0.5,
+      line: { color: '#ef4444', width: 2, dash: 'dash' }
+    }],
+    annotations: [{
+      x: med,
+      y: list.length - 0.7,
+      text: `<b>Média: ${med.toFixed(1)}%</b>`,
+      showarrow: false,
+      font: { color: '#ef4444', size: 11 },
+      xref: 'x',
+      yref: 'y'
+    }],
+    xaxis: { ...L.xaxis, range: [0, maxRange] },
+    yaxis: { ...L.yaxis, gridcolor: 'rgba(0,0,0,0)' },
+    margin: { t: 20, b: 50, l: 100, r: 30 },
+  }, CFG);
 }
 
 function drawMap(ano){

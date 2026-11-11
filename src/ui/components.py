@@ -19,7 +19,12 @@ def render_sidebar_header() -> str:
 
         active_tab = st.radio(
             "Navegação:",
-            ["🌎 Nacional & Regiões", "📍 Paraíba no Nordeste", "🎓 Rio Tinto (UFPB)"],
+            [
+                "🌎 Nacional & Regiões",
+                "📍 Paraíba no Nordeste",
+                "🎓 Rio Tinto (UFPB)",
+                "🔬 Perfil Campus IV",
+            ],
             index=0,
         )
 
